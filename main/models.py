@@ -6,7 +6,12 @@ class Profile(models.Model):
     userId = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     profileName = models.CharField(max_length=50)
     profilePhoneNumber = models.CharField(max_length=15)
-    
+
+class Search(models.Model):
+    userId = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='searches')
+    searchTerm = models.CharField(max_length=100)
+    searchDate = models.DateTimeField(auto_now_add=True)
+
 class Visitor(models.Model):
     gender = models.CharField(max_length=5)
     age = models.IntegerField(default=2)
@@ -14,10 +19,10 @@ class Visitor(models.Model):
     # 1 = 청년
     # 2 = 중년
     # 3 = 노년
-    is_foreign = models.BooleanField(default=False)
+    isForeign = models.BooleanField(default=False) #camelCase로 변수명 변경
     
     def __str__(self):
-        return f'{self.get_gender_display()} / {self.get_age_display()} / 외국인:{self.is_foreign}'
+        return f'{self.get_gender_display()} / {self.get_age_display()} / 외국인:{self.isForeign}'
 
     
 class Type(models.Model):
