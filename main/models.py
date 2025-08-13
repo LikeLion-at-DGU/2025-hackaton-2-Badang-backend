@@ -6,6 +6,19 @@ class Profile(models.Model):
     userId = models.ForeignKey(User, on_delete=models.CASCADE, primary_key=True, unique=True)
     profileName = models.CharField(max_length=50)
     profilePhoneNumber = models.CharField(max_length=15)
+    
+class Menu(models.Model):
+    menu_name = models.CharField(max_length=50)
+    menu_price = models.IntegerField()
+    
+class Visitor(models.Model):
+    gender = models.CharField(max_length=5)
+    age = models.IntegerField(default=2)
+    # 0 = 청소년
+    # 1 = 청년
+    # 2 = 중년
+    # 3 = 노년
+    is_foreign = models.BooleanField(default=False)
 
 class Store(models.Model):
     userId = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='stores')
@@ -18,10 +31,8 @@ class Store(models.Model):
     category = models.TextField(blank=True)
     isWillingCollaborate = models.BooleanField(default=False)
     storeContent = models.TextField(blank=True)
-    menu = models.TextField(blank=True)
-    price = models.TextField(blank=True)
-    visitor = models.TextField(blank=True)
-    
+    menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name='stores')
+    visitor = models.ForeignKey(Visitor, on_delete=models.CASCADE, related_name='stores', null=True, blank=True)
     
 class NewsLetter(models.Model):
     newsId = models.AutoField(primary_key=True)
