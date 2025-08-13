@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Profile(models.Model):
-    userId = models.ForeignKey(User, on_delete=models.CASCADE, primary_key=True, unique=True)
+    userId = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     profileName = models.CharField(max_length=50)
     profilePhoneNumber = models.CharField(max_length=15)
     
