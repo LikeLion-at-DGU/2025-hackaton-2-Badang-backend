@@ -13,7 +13,7 @@ class Reviewer(models.Model):
 
 class Review(models.Model):
     reviewId = models.AutoField(primary_key=True)
-    storeId = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='reviews')
+    storeId = models.ForeignKey('main.Store', on_delete=models.CASCADE, related_name='reviews')
     reviewer = models.ForeignKey(Reviewer, on_delete=models.CASCADE, related_name='reviews')
     reviewContent = models.TextField()
     reviewDate = models.DateTimeField()
