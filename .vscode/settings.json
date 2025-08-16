@@ -1,0 +1,18 @@
+{
+    "python.pythonPath": "C:\\Users\\82103\\WorkSpace\\LikeLion\\2025-hackaton-2-Badang-backend\\venv\\Scripts\\python.exe",
+    "editor.formatOnSave": false,
+    "editor.defaultFormatter": "ms-python.python",
+    "python.formatting.provider": "black",
+    "python.formatting.blackPath": "C:\\Users\\82103\\WorkSpace\\LikeLion\\2025-hackaton-2-Badang-backend\\venv\\Scripts\\black.exe",
+    "python.sortImports.path": "isort",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.analysis.extraPaths": ["./"],
+    "files.associations": {
+        "*.html": "django-html",
+        "*.djhtml": "django-html"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "mikoz.black-py"
+    },
+}
