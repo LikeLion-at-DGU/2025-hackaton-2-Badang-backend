@@ -1,0 +1,15 @@
+[MASTER]
+ignore=venv
+init-hook='import sys; sys.path.append(r"C:\Users\82103\WorkSpace\LikeLion\2025-hackaton-2-Badang-backend")'
+
+[FORMAT]
+max-line-length=120
+indent-string='    '
+good-names=i,j,k,ex,Run,_,pk,id
+
+[MESSAGES CONTROL]
+disable=C0114,C0115,C0116
+
+[DESIGN]
+max-parents=7
+max-attributes=10

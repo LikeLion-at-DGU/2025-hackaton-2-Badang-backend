@@ -9,37 +9,57 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('main', '0001_initial'),
+        ("main", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Reviewer',
+            name="Reviewer",
             fields=[
-                ('reviewerId', models.AutoField(primary_key=True, serialize=False)),
-                ('follower', models.IntegerField()),
-                ('reviewCount', models.IntegerField()),
-                ('reviewAvg', models.FloatField()),
+                ("reviewerId", models.AutoField(primary_key=True, serialize=False)),
+                ("follower", models.IntegerField()),
+                ("reviewCount", models.IntegerField()),
+                ("reviewAvg", models.FloatField()),
             ],
         ),
         migrations.CreateModel(
-            name='Review',
+            name="Review",
             fields=[
-                ('reviewId', models.AutoField(primary_key=True, serialize=False)),
-                ('reviewContent', models.TextField()),
-                ('reviewDate', models.DateTimeField()),
-                ('reviewRate', models.IntegerField()),
-                ('storeId', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='main.store')),
-                ('reviewer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='review.reviewer')),
+                ("reviewId", models.AutoField(primary_key=True, serialize=False)),
+                ("reviewContent", models.TextField()),
+                ("reviewDate", models.DateTimeField()),
+                ("reviewRate", models.IntegerField()),
+                (
+                    "storeId",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="reviews", to="main.store"
+                    ),
+                ),
+                (
+                    "reviewer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="reviews", to="review.reviewer"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ReviewAnalysis',
+            name="ReviewAnalysis",
             fields=[
-                ('reviewAnalysisId', models.AutoField(primary_key=True, serialize=False)),
-                ('analysisContent', models.TextField()),
-                ('reviewId', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='review_analysis', to='review.review')),
-                ('storeId', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='review_analysis', to='main.store')),
+                ("reviewAnalysisId", models.AutoField(primary_key=True, serialize=False)),
+                ("analysisContent", models.TextField()),
+                (
+                    "reviewId",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="review_analysis", to="review.review"
+                    ),
+                ),
+                (
+                    "storeId",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="review_analysis", to="main.store"
+                    ),
+                ),
             ],
         ),
     ]
