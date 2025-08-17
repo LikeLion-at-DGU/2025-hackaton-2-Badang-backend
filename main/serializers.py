@@ -1,11 +1,47 @@
 from rest_framework import serializers
+from django.db import transaction
 from .models import *
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(write_only=True)              # -> User.username
+    password = serializers.CharField(write_only=True, min_length=4)
+    name = serializers.CharField(source='profileName')
+    phoneNumber = serializers.CharField(source='profilePhoneNumber')
+    
+    
+    userId = serializers.IntegerField(source='pk', read_only=True)
+    
+    class Meta:
+        model = Profile
+        fields = ['id', 'password', 'name', 'phoneNumber', 'userId']
+        read_only_fields = [
+            'userId'
+        ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+        username = validated_data.pop('id')
+        raw_pw = validated_data.pop('password')
+        user = User(username=username)
+        user.set_password(raw_pw)
+        user.save()
+        profile = Profile.objects.create(userId=user, **validated_data)
+        return profile
+
 
 
 #---response 전용 serializer--
 
+class MenuReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Menu
+        fields = ['id', 'name', 'price']
+
+
 #가게 설정 후 선택 정보 넘어가기 전 받을 response(가게 id) 
-class StoreResgisterResponseSerializer(serializers.ModelSerializer):
+class StoreRegisterResponseSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Store
         fields = [
@@ -14,6 +50,8 @@ class StoreResgisterResponseSerializer(serializers.ModelSerializer):
         
 #가게 상세 정보 설정 후 받을 response
 class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):
+    menus = MenuReadSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Store
         fields = [
@@ -26,15 +64,18 @@ class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):
 
 #가게 설정 시 request
 class StoreRegisterRequestSerializer(serializers.ModelSerializer):
+    
+    userId = serializers.PrimaryKeyRelatedField(source='user', queryset=Profile.objects.all())
+    
     class Meta:
         model = Store
         fields = [
-            'name', 'address'
+            'userId','name', 'address'
         ]
         
         
 #menu 이름, 가격으로 입력받기
-class MenuItemWriteSerializer(serializers.Serializer):
+class MenuSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50)
     price = serializers.IntegerField(min_value=0)
 
@@ -47,14 +88,15 @@ class MenuItemWriteSerializer(serializers.Serializer):
     
 #가게 상세 정보 요청 requset
 class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
-    
+    isWillingCollaborate = serializers.BooleanField(source='is_willing_collaborate', required=False)
+    storeContent = serializers.CharField(source='content', required=False, allow_blank=True)
     #선택 항목들
     type = serializers.PrimaryKeyRelatedField(queryset=Type.objects.all(), required=True, allow_null=True)
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True, allow_null=True)
     visitor = serializers.PrimaryKeyRelatedField(queryset=Visitor.objects.all(), required=True, allow_null=True)
     
     #직접 입력하시는 메뉴
-    menus = MenuItemWriteSerializer(many=True, required=False)
+    menus = MenuSerializer(many=True, required=False)
      
     class Meta:
         model = Store
@@ -66,8 +108,19 @@ class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
             'storeContent',
             'menus',
         ]
-        extra_kwargs = {
-            'content': {'required': False}, 
-            'is_willing_collaborate': {'required': False}
-        }
-        
+    @transaction.atomic
+    def update(self, instance: Store, validated_data):
+        menus_payload = validated_data.pop('menus', None)
+
+        # 기본 필드 적용
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        instance.save()
+
+        if menus_payload is not None:
+            instance.menus.all().delete()
+            to_create = [Menu(store=instance, name=m['name'], price=m['price']) for m in menus_payload]
+            if to_create:
+                Menu.objects.bulk_create(to_create)
+
+        return instance
