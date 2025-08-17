@@ -110,16 +110,16 @@ class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
         ]
     @transaction.atomic
     def update(self, instance: Store, validated_data):
-        menus_payload = validated_data.pop('menus', None)
+        menus = validated_data.pop('menus', None)
 
         # 기본 필드 적용
         for k, v in validated_data.items():
             setattr(instance, k, v)
         instance.save()
 
-        if menus_payload is not None:
+        if menus is not None:
             instance.menus.all().delete()
-            to_create = [Menu(store=instance, name=m['name'], price=m['price']) for m in menus_payload]
+            to_create = [Menu(store=instance, name=m['name'], price=m['price']) for m in menus]
             if to_create:
                 Menu.objects.bulk_create(to_create)
 
