@@ -8,60 +8,72 @@ class Profile(models.Model):
     profilePhoneNumber = models.CharField(max_length=15)
 
 class Search(models.Model):
-    userId = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='searches')
-    searchTerm = models.CharField(max_length=100)
-    searchDate = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='searches')
+    term = models.CharField(max_length=100, blank=True)
+    searched_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+
 
 class Visitor(models.Model):
-    gender = models.CharField(max_length=5)
-    age = models.IntegerField(default=2)
-    # 0 = 청소년
-    # 1 = 청년
-    # 2 = 중년
-    # 3 = 노년
-    isForeign = models.BooleanField(default=False) #camelCase로 변수명 변경
-    
-    def __str__(self):
-        return f'{self.get_gender_display()} / {self.get_age_display()} / 외국인:{self.isForeign}'
+    class Gender(models.TextChoices):
+        MALE = 'M', '남'
+        FEMALE = 'F', '여'
+        OTHER = 'O', '기타'
 
-    
+    class AgeGroup(models.IntegerChoices):
+        TEEN = 0, '청소년'
+        YOUTH = 1, '청년'
+        MIDDLE = 2, '중년'
+        SENIOR = 3, '노년'
+
+    gender = models.CharField(max_length=1, choices=Gender.choices)
+    age_group = models.IntegerField(choices=AgeGroup.choices, default=AgeGroup.MIDDLE)
+    is_foreign = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.get_gender_display()} / {self.get_age_group_display()} / 외국인:{self.is_foreign}'
+
+
 class Type(models.Model):
     name = models.CharField(max_length=50)
 
+
 class Category(models.Model):
-    type = models.ForeignKey(Type, on_delete=models.CASCADE)
+    type = models.ForeignKey(Type, on_delete=models.CASCADE, related_name='categories')
     name = models.CharField(max_length=50)
-    
 
     def __str__(self):
         return f'{self.type.name} / {self.name}'
 
-class Menu(models.Model):
-    menu_name = models.CharField(max_length=50)
-    menu_price = models.IntegerField()
-    
-
-    def __str__(self):
-        return f'{self.store.name} - {self.name}'
     
 class Store(models.Model):
-    userId = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='stores')
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='stores')
     name = models.CharField(max_length=50)
     address = models.TextField()
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
-    
-    kakaoPlaceId = models.BigIntegerField(blank=True, null=True, unique=True)
-    
+
+    kakao_place_id = models.BigIntegerField(blank=True, null=True, unique=True)
+
     type = models.ForeignKey(Type, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
-    
-    isWillingCollaborate = models.BooleanField(default=False)
-    storeContent = models.TextField(blank=True)
-    menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name='stores')
-    visitor = models.ForeignKey(Visitor, on_delete=models.CASCADE, related_name='stores', null=True, blank=True)
-    
-    
+
+    is_willing_collaborate = models.BooleanField(default=False)
+    content = models.TextField(blank=True)
+    visitor = models.ForeignKey(Visitor, on_delete=models.SET_NULL, related_name='stores', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Menu(models.Model):
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='menus', null=True, blank=True)
+    name = models.CharField(max_length=50)
+    price = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.store.name} - {self.name}'
+
 class NewsLetter(models.Model):
     newsId = models.AutoField(primary_key=True)
     userId = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='newsletters')
