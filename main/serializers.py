@@ -49,9 +49,9 @@ class MenuItemWriteSerializer(serializers.Serializer):
 class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
     
     #선택 항목들
-    type = serializers.PrimaryKeyRelatedField(queryset=Type.objects.all(), required=False, allow_null=True)
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=False, allow_null=True)
-    visitor = serializers.PrimaryKeyRelatedField(queryset=Visitor.objects.all(), required=False, allow_null=True)
+    type = serializers.PrimaryKeyRelatedField(queryset=Type.objects.all(), required=True, allow_null=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True, allow_null=True)
+    visitor = serializers.PrimaryKeyRelatedField(queryset=Visitor.objects.all(), required=True, allow_null=True)
     
     #직접 입력하시는 메뉴
     menus = MenuItemWriteSerializer(many=True, required=False)
@@ -68,9 +68,6 @@ class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             'content': {'required': False}, 
-            'is_willing_collaborate': {'required': False},
-            'type' :{'required': True},
-            'category' :{'required': True},
-            'visitor':{'required': True}
+            'is_willing_collaborate': {'required': False}
         }
         
