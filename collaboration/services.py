@@ -62,3 +62,15 @@ def updateCollaborationMsg(collaborateId: int, storeId: int, memo: str = "") -> 
     if Collaborate.objects.filter(id=collaborateId).exists():
         raise DomainError("해당 협업에 속한 가게가 아닙니다.")
     raise DomainError("유효하지 않은 협업 ID입니다.")
+
+def deleteCollaboration(collaborateId: int) -> str:
+    
+    if not Collaborate.objects.filter(id=collaborateId).exists():
+        raise DomainError("유효하지 않은 협업 ID입니다.")
+    
+    delete = (Collaborate.objects
+              .filter(id=collaborateId)
+              .delete)
+    
+    if delete:
+        return "삭제 완료"

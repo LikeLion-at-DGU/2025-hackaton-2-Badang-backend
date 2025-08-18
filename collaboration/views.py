@@ -82,3 +82,16 @@ class CollaborationView(APIView):
             }
         }
         return Response(out, status=status.HTTP_200_OK )
+    
+    def delete(self, request, collaborationId: int):
+        
+        collaborationId = int(collaborationId)
+        message = deleteCollaboration(collaborationId)
+        
+        out = {
+            "status": 200,
+            "message": message
+        }
+        
+        return Response(out, status=status.HTTP_200_OK )
+        
