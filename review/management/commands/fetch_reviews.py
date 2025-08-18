@@ -37,7 +37,7 @@ class Command(BaseCommand):
             except Exception as e:
                 print("페이지 저장 실패:", e)
 
-ㅊ        def parse_review_block(item):
+        def parse_review_block(item):
             # item: bs4.element.Tag representing one review block
             # try several selectors for author
             author_selectors = [
