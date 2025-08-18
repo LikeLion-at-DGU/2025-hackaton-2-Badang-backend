@@ -7,7 +7,7 @@ from .serializers import *
 from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework import status
 
 import re
@@ -30,6 +30,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
 
+    
+    # 테스트 기간: 전부 오픈하려면
+    permission_classes = [AllowAny]          # ✅ 리스트(또는 튜플)로, 클래스 자체를 넣는다
+
+    # (나중에 잠글 때)
+    # def get_permissions(self):
+    #     if self.action == "create":        # 회원가입만 오픈
+    #         return [AllowAny()]
+    #     return [IsAuthenticated()]
+    
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
