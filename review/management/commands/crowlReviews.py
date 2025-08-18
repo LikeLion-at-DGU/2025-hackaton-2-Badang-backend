@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     reviewList = []
 
-    def extract_review():
+    def extract_review(self):
         html = Command.driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -45,8 +45,8 @@ class Command(BaseCommand):
         else:
             reviews.append(' ')
             
-        driver.close()
-        driver.switch_to.window(driver.window_handles[0])
+        Command.driver.close()    
+        Command.driver.switch_to.window(Command.driver.window_handles[0])
         time.sleep(2)
         
         return reviews
@@ -61,34 +61,33 @@ class Command(BaseCommand):
 
         for i, place in enumerate(place_lists):
             temp = []
-            
+
             name = place.select('head_item > .tit_name > .link_name')[0].text
             score = place.select('.rating > .score > em')[0].text
             addr = place.select('.addr > p')[0].text
             
             # 상세정보 탭으로 이동
-            driver.find_element(By.XPATH, r'//*[@id="info.search.place.list"]/li['+str(i+1)+']/div[5]/div[4]/a[1]').send_keys(Keys.ENTER)
-            driver.switch_to.window(driver.window_handles[-1])
+            Command.driver.find_element(By.XPATH, r'//*[@id="info.search.place.list"]/li['+str(i+1)+']/div[5]/div[4]/a[1]').send_keys(Keys.ENTER)
+            Command.driver.switch_to.window(Command.driver.window_handles[-1])
             time.sleep(2)
-            rev = extract_review()  # 리뷰 추출 함수 실행
-            
-            
-            # 하나의 리스트로 만들어 room_list에 추가
+            rev = Command.extract_review()  # 리뷰 추출 함수 실행
+
+            # 하나의 리스트로 만들어 reviewList에 추가
             temp.append(name)
             temp.append(score)
             temp.append(addr[3:])
             temp.append(rev)
-            
-            room_list.append(temp)
+
+            Command.reviewList.append(temp)
 
     def getReviewList():
         global reviewList
-        review_elements = driver.find_elements(By.CLASS_NAME, "review")
+        review_elements = Command.driver.find_elements(By.CLASS_NAME, "review")
         for review in review_elements:
             reviewer_name = review.find_element(By.CLASS_NAME, "reviewer-name").text
             review_text = review.find_element(By.CLASS_NAME, "review-text").text
-            reviewList.append(Review(reviewer=Reviewer(name=reviewer_name), text=review_text))
-        return reviewList
+            Command.reviewList.append(Review(reviewer=Reviewer(name=reviewer_name), text=review_text))
+        return Command.reviewList
 
     for i in range(1, 9):
         try:
