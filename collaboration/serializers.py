@@ -3,6 +3,8 @@ from django.db import transaction
 from .models import *
 from main.models import *
 from common.serializers import *
+from .services import *
+from .selectors import *
 
 #store 정보 관련 묶음
 class StoreBrief(serializers.Serializer):
@@ -72,11 +74,39 @@ class OutgoingItem(serializers.Serializer):
 
 
 #협업 중인 건 관련 DTO
+class ActiveListReq(serializers.Serializer):
+    storeId = serializers.IntegerField(required=False)
+    
+    
 class ActiveItem(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    partnerStore = StoreBrief()
+    collaborateStore = StoreBrief()
     memo = serializers.CharField(allow_blank=True)
     startedAt = serializers.DateTimeField()
+    
+    def to_representation(self, obj: Collaborate):
+        my_store_id = self.context.get("storeId")
+
+        # 내가 요청자면 파트너=응답자, 메모는 내가 적은 requestMemo(반대도 동일)
+        if obj.requestStore_id == my_store_id:
+            partner = obj.responseStore
+            memo = obj.requestMemo or ""
+        else:
+            partner = obj.requestStore
+            memo = obj.responseMemo or ""
+
+        return {
+            "collaborateId": obj.id,
+            "collaborateStore": {
+                "storeId": partner.id,
+                "name": partner.name,
+                "latitude": partner.latitude,
+                "longitude": partner.longitude,
+                "address": partner.address,
+            },
+            "memo": memo,
+            "createdAt": obj.createdAt,
+        }
 
 
 
