@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'review',
     'trend',
     'collaboration',
+    'common',
 ]
 
 MIDDLEWARE = [
@@ -169,3 +170,6 @@ CORS_ALLOW_ORIGINS = [
     "http://localhost:8000",
     #프론트엔드 배포 주소
 ]
+
+OPENAI_API_KEY = env("OPENAI_API_KEY")
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
