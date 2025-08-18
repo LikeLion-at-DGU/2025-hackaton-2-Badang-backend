@@ -18,13 +18,13 @@ class CollaborationView(APIView):
     
     def post(self, request):
         # 1) 입력 검증
-        request = CollaborationCreateReq(data=request.data)
-        request.is_valid(raise_exception=True)
+        req = CollaborationCreateReq(data=request.data)
+        req.is_valid(raise_exception=True)
 
         # 2) 컨텍스트에서 신청자 가게 ID 가져옴
-        fromStoreId = request.validated_data["fromStoreId"]
-        toStoreId = request.validated_data["toStoreId"]
-        msg = request.validated_data.get("initialMessage", "")
+        fromStoreId = req.validated_data["fromStoreId"]
+        toStoreId = req.validated_data["toStoreId"]
+        msg = req.validated_data.get("initialMessage", "")
 
         # 3) 서비스 호출(쓰기/도메인 로직)
         try:
@@ -39,7 +39,7 @@ class CollaborationView(APIView):
         }
         return Response(CollaborationCreatedResp(out).data, status=status.HTTP_201_CREATED)
     
-    def get(self, storeId: int):
+    def get(self, request, storeId: int):
         storeId = int(storeId)
 
         # (선택) 가게 존재 확인 로직이 필요하면 주석 해제
@@ -58,3 +58,27 @@ class CollaborationView(APIView):
             }
         }
         return Response(out, status=status.HTTP_200_OK)
+    
+    def patch(self, request):
+        
+        req = CollaborationMemoPatchReq(data=request.data)
+        req.is_valid(raise_exception=True)
+        
+        collaborateId = req.validated_data["collaborateId"]
+        storeId = req.validated_data["storeId"]
+        msg = req.validated_data["memo"]
+        
+        
+        try:
+            memo = updateCollaborationMsg(collaborateId, storeId, msg)
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        out = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "memo":memo
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK )

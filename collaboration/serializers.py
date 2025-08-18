@@ -112,12 +112,10 @@ class ActiveItem(serializers.Serializer):
 
 #협업 메모 수정
 class CollaborationMemoPatchReq(serializers.Serializer):
+    collaborateId = serializers.IntegerField()
+    storeId = serializers.IntegerField()
     memo = serializers.CharField(allow_blank=True)
     
-class CollaborationMemoPatchResp(serializers.Serializer):
-    collaborateId = serializers.IntegerField()
-    memo = serializers.CharField()
-    updatedAt = serializers.DateTimeField()
 
 
 #협업 끝난 가게 삭제
