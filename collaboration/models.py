@@ -8,3 +8,4 @@ class Collaborate(models.Model):
     isAccepted = models.IntegerField(default=0)
     requestCreatedAt = models.DateTimeField(auto_now_add=True)
     createdAt = models.DateTimeField(blank=True)
+    content = models.TextField(blank=True,null=True)
