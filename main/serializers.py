@@ -54,9 +54,7 @@ class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Store
-        fields = [
-            '__all__'
-        ]
+        fields ='__all__'
 
 
 
