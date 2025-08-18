@@ -13,14 +13,18 @@ class StoreBrief(serializers.Serializer):
     address = serializers.CharField()
     
 
+
 # 협업 신청시 필요한 DTO
 class CollaborationCreateReq(serializers.Serializer):
-    storeId = serializers.IntegerField()
+    fromStoreId = serializers.IntegerField()
+    toStoreId = serializers.IntegerField()
     initialMessage = serializers.CharField(allow_blank=True, required=False, default="")
 
 class CollaborationCreatedResp(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     IsAccepted = serializers.ChoiceField(choices=["PENDING"])
+    
+    
     
 #수락 거절 DTO
 class CollaborationDecisionReq(serializers.Serializer):
@@ -30,6 +34,8 @@ class CollaborationDecisionReq(serializers.Serializer):
 class CollaborationDecisionResp(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     IsAccepted = serializers.ChoiceField(choices=["ACCEPTED","REJECTED"])
+  
+    
     
 #협업 요청받은 건 관련 DTO
 class IncomingListReq(serializers.Serializer):
@@ -48,6 +54,8 @@ class IncomingListResp(serializers.Serializer):
     items = IncomingItem(many=True)
     total = serializers.IntegerField()
 
+
+
 #협업 요청한 건 관련 DTO
 class OutgoingListReq(serializers.Serializer):
     requestStoreId = serializers.IntegerField(required=False)
@@ -62,12 +70,14 @@ class OutgoingItem(serializers.Serializer):
     updatedAt = serializers.DateTimeField()
 
 
+
 #협업 중인 건 관련 DTO
 class ActiveItem(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     partnerStore = StoreBrief()
     memo = serializers.CharField(allow_blank=True)
     startedAt = serializers.DateTimeField()
+
 
 
 #협업 메모 수정
@@ -78,6 +88,7 @@ class CollaborationMemoPatchResp(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     memo = serializers.CharField()
     updatedAt = serializers.DateTimeField()
+
 
 #협업 끝난 가게 삭제
 class CollaborationDeleteResp(serializers.Serializer):
