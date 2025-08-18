@@ -31,7 +31,7 @@ class ReviewAnalysis(models.Model):
     reviewAnalysisId = models.AutoField(primary_key=True)
     storeId = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="review_analysis")
     reviewId = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="review_analysis")
-    analysisContent = models.TextField()
+    analysisContent = models.TextField()    
 
     def __str__(self):
         return f"Analysis {self.reviewAnalysisId} for Review {self.reviewId.reviewId}"

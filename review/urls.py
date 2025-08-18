@@ -1,8 +1,15 @@
 from rest_framework.routers import DefaultRouter
+from django.urls import path, include
+from .views import ReviewAnalysisViewSet
+from .views import ping_analysis
 
-# router = DefaultRouter()
-# router.register()
+app_name = "review"
 
-# urlpatterns = router.urls
+default_router = DefaultRouter(trailing_slash=False)
+default_router.register(r'analysis', ReviewAnalysisViewSet, basename='analysis')
 
-urlpatterns = []
+urlpatterns = [
+    path('', include(default_router.urls)),
+    path('test', ping_analysis, name='ping-analysis'),
+]
+
