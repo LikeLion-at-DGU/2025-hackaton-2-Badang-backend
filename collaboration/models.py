@@ -24,7 +24,6 @@ class Collaborate(models.Model):
         ACCEPTED = 1, '수락'
         REJECTED = 2, '거절'
     isAccepted = models.IntegerField(choices=Status.choices, default=Status.PENDING)
-    is_active = models.BooleanField(default=True)
     
     requestCreatedAt = models.DateTimeField(auto_now_add=True)
     
