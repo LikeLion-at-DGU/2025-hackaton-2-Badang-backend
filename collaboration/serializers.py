@@ -16,9 +16,10 @@ class StoreBrief(serializers.Serializer):
     
 #협업 가능 가게 찾기
 class CollaborationSearchReq(serializers.Serializer):
-    type = serializers.IntegerField()
-    category = serializers.IntegerField()
-    query = serializers.CharField()
+    type = serializers.IntegerField(required=False)
+    category = serializers.IntegerField(required=False)
+    query = serializers.CharField(required=False, allow_blank=True, default="")
+    storeId = serializers.IntegerField()
     
 class CollaborationSearchRes(serializers.Serializer):
     store = StoreBrief()
@@ -66,7 +67,7 @@ class IncomingItem(serializers.Serializer):
 
         return {
             "collaborateId": obj.id,
-            "responseStore": {
+            "resquestStore": {
                 "storeId": partner.id,
                 "storeName": partner.name,
                 "storeLatitude": partner.latitude,

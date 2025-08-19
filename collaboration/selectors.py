@@ -5,16 +5,27 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from common.serializers import *
 from main.models import *
 from .models import *
+import math
+from .services import DomainError
 
-#가게 정보 반환 (재사용)
-def store_detail_dict(store) -> dict:
-    return {
-        "storeId": store.id,
-        "name": store.name,
-        "latitude": store.latitude,
-        "longitude": store.longitude,
-        "address": store.address,
-    }
+# 가까운 거리 정렬 위한 계산용
+def _haversine_km(lat1, lon1, lat2, lon2) -> float:
+    R = 6371.0  # 지구 반지름(km)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+# #가게 정보 반환 (재사용)
+# def store_detail_dict(store) -> dict:
+#     return {
+#         "storeId": store.id,
+#         "name": store.name,
+#         "latitude": store.latitude,
+#         "longitude": store.longitude,
+#         "address": store.address,
+#     }
 
 #협업중인 가게 목록 반환
 def getActiveCollaboration(storeId : int):
@@ -51,3 +62,35 @@ def getResponseCollaboration(storeId: int):
         .order_by("-createdAt")                                                   # ✅ DB 정렬
     )
     return list(qs)
+
+def getCollaborationSerach(storeId:int, type: int | None = None, category: int | None = None, query:str=""):
+    
+    try:
+        me = Store.objects.only("latitude", "longitude").get(id=storeId)
+    except Store.DoesNotExist:
+        raise DomainError("유효하지 않은 가게 ID입니다.")
+    
+    # 후보 골라내기 (자기 자신 제외 + 협업 가능만)
+    qs = (Store.objects
+        .filter(is_willing_collaborate=True)
+        .exclude(id=storeId))
+    
+    if type is not None:
+        qs = qs.filter(type=type)
+    if category is not None:
+        qs = qs.filter(category=category)
+        
+    #query 가 이름에 포함된 가게로 필터링
+    if query:
+        qs = qs.filter(name__icontains=query)
+
+    candidates = []
+    for s in qs:
+        d = _haversine_km(me.latitude, me.longitude, s.latitude, s.longitude)
+        candidates.append((d, s))
+
+    candidates.sort(key=lambda x: x[0])
+    # Top 8만 반환
+    top = candidates[:8]
+    
+    return [s for _, s in top]
