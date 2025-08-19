@@ -44,6 +44,14 @@ def createCollaboration(fromStoreId: int, toStoreId: int, initialMessage: str = 
 
 @transaction.atomic
 def updateCollaborationMsg(collaborateId: int, storeId: int, memo: str = "") -> str:
+    
+    if not Collaborate.objects.filter(id=collaborateId).exists():
+        raise DomainError("유효하지 않은 협업 ID입니다.")
+    
+    if not Store.objects.filter(id=storeId).exists():
+        raise DomainError("유효하지 않은 가게 ID입니다.")
+    
+    
     # 요청자 메모 갱신 시도
     updated = (Collaborate.objects
                .filter(id=collaborateId, requestStore_id=storeId)
@@ -77,6 +85,9 @@ def deleteCollaboration(collaborateId: int) -> str:
     
 @transaction.atomic
 def decisionCollaboration(collaborateId:int, isAccepted:str=""):
+    
+    if not Collaborate.objects.filter(id=collaborateId).exists():
+        raise DomainError("유효하지 않은 협업 ID입니다.")
     
     updated = (Collaborate.objects.filter(id=collaborateId)
                .update(isAccepted=isAccepted))

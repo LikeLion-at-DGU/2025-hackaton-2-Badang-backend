@@ -14,7 +14,32 @@ from .selectors import *
 
 # Create your views here.
 
-class CollaborationView(APIView):
+class CollaborationSearchListView(APIView):
+    def post(self, request):
+        
+        req = CollaborationSearchReq(data=request.data)
+        req.is_valid(raise_exception=True)
+        
+        type = req.validated_data["type"]
+        category = req.validated_data["category"]
+        query = req.validated_data["query"]
+        storeId = req.validated_data["storeId"]
+        
+        try:
+            res = getCollaborationSerach(storeId, type, category, query)
+        except DomainError as e:
+            return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        out = {
+            "status":200,
+            "message":"가까운 8개 가게 반환 완료",
+            "data":{
+                "store":res
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK)
+        
+class CollaborationPostView(APIView):
     
     def post(self, request):
         # 1) 입력 검증
@@ -33,32 +58,17 @@ class CollaborationView(APIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # 4) 응답 직렬화(응답 스펙 고정)
+        
         out = {
+            "status": 201,
+            "message": "요청 성공",
             "collaborateId": collab.id,
-            "status": "PENDING" if collab.isAccepted == Collaborate.Status.PENDING else "UNKNOWN",
+            "IsAccepted":collab.isAccepted
         }
-        return Response(CollaborationCreatedResp(out).data, status=status.HTTP_201_CREATED)
-    
-    def get(self, request, storeId: int):
-        storeId = int(storeId)
+        return Response(out, status=status.HTTP_201_CREATED )
 
-        # (선택) 가게 존재 확인 로직이 필요하면 주석 해제
-        # if not Store.objects.filter(id=store_id).exists():
-        #     return Response({"status": 404, "message": "가게 없음", "data": {}},
-        #                     status=status.HTTP_404_NOT_FOUND)
 
-        rows = getActiveCollaboration(storeId)
-
-        items = ActiveItem(rows, many=True, context={"storeId": storeId}).data
-        out = {
-            "status": 200,
-            "message": "조회 성공",
-            "data": {
-                "collaborateStores": items
-            }
-        }
-        return Response(out, status=status.HTTP_200_OK)
-    
+class CollaborationUpdateView(APIView):
     def patch(self, request):
         
         req = CollaborationMemoPatchReq(data=request.data)
@@ -82,7 +92,8 @@ class CollaborationView(APIView):
             }
         }
         return Response(out, status=status.HTTP_200_OK )
-    
+
+class CollaborationDeleteView(APIView):
     def delete(self, request, collaborationId: int):
         
         collaborationId = int(collaborationId)
@@ -95,7 +106,27 @@ class CollaborationView(APIView):
         
         return Response(out, status=status.HTTP_200_OK )
         
+class ActiveCollaborationListView(APIView):
+    def get(self, request, storeId: int):
+        storeId = int(storeId)
 
+        # (선택) 가게 존재 확인 로직이 필요하면 주석 해제
+        # if not Store.objects.filter(id=store_id).exists():
+        #     return Response({"status": 404, "message": "가게 없음", "data": {}},
+        #                     status=status.HTTP_404_NOT_FOUND)
+
+        rows = getActiveCollaboration(storeId)
+
+        items = ActiveItem(rows, many=True, context={"storeId": storeId}).data
+        out = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "collaborateStores": items
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK)
+    
 class RequestCollaborateListView(APIView):
     def get(self, request, storeId:int):
         storeId = int(storeId)
