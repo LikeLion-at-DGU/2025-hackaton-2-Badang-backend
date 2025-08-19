@@ -20,7 +20,7 @@ class ReviewAnalysisSerializer(serializers.Serializer):
     analysisProblem = serializers.CharField()
     analysisSolution = serializers.CharField()
 
-class StorePromptResponseSerializer(serializers.Serializer):
+class StoreReviewResponseSerializer(serializers.Serializer):
     statusCode = serializers.IntegerField()
     message = serializers.CharField()
     data = ReviewAnalysisSerializer()

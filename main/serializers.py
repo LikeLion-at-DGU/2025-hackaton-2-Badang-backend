@@ -10,7 +10,6 @@ class ProfileSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='profileName')
     phoneNumber = serializers.CharField(source='profilePhoneNumber')
     
-    
     userId = serializers.IntegerField(source='pk', read_only=True)
     
     class Meta:
@@ -42,7 +41,8 @@ class MenuReadSerializer(serializers.ModelSerializer):
 
 #가게 설정 후 선택 정보 넘어가기 전 받을 response(가게 id) 
 class StoreRegisterResponseSerializer(serializers.ModelSerializer):
-    id = getStoreId(storeName=Store.name, storeAddress=Store.address)  # 가게 ID를 반환하는 필드
+    id, phoneNumber, placeLatitude, placeLongitude = getStoreId(storeName=Store.name, storeAddress=Store.address)  # 카카오맵 API 활용. 카카오맵
+    
     class Meta:
         model = Store
         fields = [
