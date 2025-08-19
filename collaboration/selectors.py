@@ -81,7 +81,7 @@ def getCollaborationSearch(storeId:int,
     
     # 후보 골라내기 (자기 자신 제외 + 협업 가능만)
     qs = (Store.objects
-        .filter(is_willing_collaborate=True)
+        .filter(isWillingCollaborate=True)
         .exclude(id=storeId))
     
     if type_ is not None:

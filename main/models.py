@@ -58,7 +58,7 @@ class Store(models.Model):
     type = models.ForeignKey(Type, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
 
-    is_willing_collaborate = models.BooleanField(default=False)
+    isWillingCollaborate = models.BooleanField(default=False)
     content = models.TextField(blank=True)
     visitor = models.ForeignKey(Visitor, on_delete=models.SET_NULL, related_name='stores', null=True, blank=True)
 
