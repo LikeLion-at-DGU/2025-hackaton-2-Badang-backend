@@ -33,8 +33,8 @@ def createCollaboration(fromStoreId: int, toStoreId: int, initialMessage: str = 
         raise DomainError("이미 대기 중인 요청이 있습니다.")
 
     collaboration = Collaborate.objects.create(
-        requestStoreId=fromStoreId,
-        responseStoreId=toStoreId,
+        requestStore_id=fromStoreId,
+        responseStore_id=toStoreId,
         initialMessage=initialMessage,
         requestMemo=initialMessage,
         responseMemo=initialMessage,
@@ -78,7 +78,7 @@ def deleteCollaboration(collaborateId: int) -> str:
     
     delete = (Collaborate.objects
               .filter(id=collaborateId)
-              .delete)
+              .delete())
     
     if delete:
         return "삭제 완료"
@@ -86,10 +86,22 @@ def deleteCollaboration(collaborateId: int) -> str:
 @transaction.atomic
 def decisionCollaboration(collaborateId:int, isAccepted:str=""):
     
-    if not Collaborate.objects.filter(id=collaborateId).exists():
+    try:
+        collab = Collaborate.objects.select_for_update().get(id=collaborateId)
+    except Collaborate.DoesNotExist:
         raise DomainError("유효하지 않은 협업 ID입니다.")
     
-    updated = (Collaborate.objects.filter(id=collaborateId)
-               .update(isAccepted=isAccepted))
-    if updated:
-        return "수락/거절 결정완료"
+    if collab.isAccepted != Collaborate.Status.PENDING:
+        raise DomainError("이미 결정된 협업입니다.")
+    
+    m = {"ACCEPTED": Collaborate.Status.ACCEPTED,
+         "REJECTED": Collaborate.Status.REJECTED}
+    
+    try:
+        new_status = m[isAccepted.upper()]
+    except KeyError:
+        raise DomainError("isAccepted 는 ACCEPTED/REJECTED만 허용합니다.")
+    
+    collab.isAccepted = new_status
+    collab.save(update_fields=["isAccepted"])
+    return "수락/거절 결정완료"

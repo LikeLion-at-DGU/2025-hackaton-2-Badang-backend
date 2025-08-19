@@ -26,7 +26,7 @@ class CollaborationSearchListView(APIView):
         storeId = req.validated_data["storeId"]
         
         try:
-            res = getCollaborationSerach(storeId, type, category, query)
+            res = getCollaborationSearch(storeId, type, category, query)
         except DomainError as e:
             return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -94,10 +94,10 @@ class CollaborationUpdateView(APIView):
         return Response(out, status=status.HTTP_200_OK )
 
 class CollaborationDeleteView(APIView):
-    def delete(self, request, collaborationId: int):
+    def delete(self, request, collaborateId: int):
         
-        collaborationId = int(collaborationId)
-        msg = deleteCollaboration(collaborationId)
+        collaborateId = int(collaborateId)
+        msg = deleteCollaboration(collaborateId)
         
         out = {
             "status": 200,
