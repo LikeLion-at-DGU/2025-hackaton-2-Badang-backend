@@ -17,16 +17,16 @@ class Command(BaseCommand):
     help = "카카오맵 리뷰 크롤러"
 
     def add_arguments(self, parser):
-        parser.add_argument("--store_id", type=str, help="카카오맵 storeId")
+        parser.add_argument("--kakao_store_id", type=str, help="카카오맵 storeId")
 
     def handle(self, *args, **options):
-        store_id = options['store_id']
-        if not store_id:
-            self.stdout.write(self.style.ERROR("store_id가 필요합니다."))
+        kakao_store_id = options['kakao_store_id']
+        if not kakao_store_id:
+            self.stdout.write(self.style.ERROR("kakao_store_id가 필요합니다."))
             return
 
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-        url = f"https://place.map.kakao.com/{store_id}#review"
+        url = f"https://place.map.kakao.com/{kakao_store_id}#review"
         driver.get(url)
         
         self.stdout.write(self.style.SUCCESS("페이지 로드 후 스크롤을 시작합니다."))
@@ -46,9 +46,9 @@ class Command(BaseCommand):
         try:
             # 리뷰 목록이 로드될 때까지 최대 10초 대기
             WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".list_review > li"))
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".list_review > ul"))
             )
-            review_items = driver.find_elements(By.CSS_SELECTOR, ".list_review > li")
+            review_items = driver.find_elements(By.CSS_SELECTOR, ".list_review > ul")
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"리뷰 elements를 찾을 수 없습니다: {e}"))
             review_items = []
@@ -58,28 +58,28 @@ class Command(BaseCommand):
             driver.quit()
             return
 
-        store = Store.objects.filter(kakao_place_id=store_id).first()
+        store = Store.objects.filter(kakao_place_id=kakao_store_id).first()
         if not store:
-            self.stdout.write(self.style.WARNING(f"스토어 ID {store_id}를 찾을 수 없습니다."))
+            self.stdout.write(self.style.WARNING(f"스토어 ID {store}를 찾을 수 없습니다."))
             driver.quit()
             return
             
         for item in review_items:
-            # 리뷰어 이름: .txt_username (스크린샷 기반)
+            # 리뷰어 이름: .name_user (스크린샷 기반)
             try:
-                reviewer_name = item.find_element(By.CSS_SELECTOR, ".txt_username").text.strip()
+                reviewer_name = item.find_element(By.CSS_SELECTOR, ".name_user").text.strip()
             except:
                 reviewer_name = "익명"
 
-            # 리뷰 내용: .txt_comment (스크린샷 기반)
+            # 리뷰 내용: .desc_review (스크린샷 기반)
             try:
-                comment = item.find_element(By.CSS_SELECTOR, ".txt_comment").text.strip()
+                comment = item.find_element(By.CSS_SELECTOR, ".desc_review").text.strip()
             except:
                 comment = None
 
             # 리뷰 점수: .num_rate (스크린샷 기반)
             try:
-                score = item.find_element(By.CSS_SELECTOR, ".num_rate").text.strip()
+                score = item.find_element(By.CSS_SELECTOR, ".wrap_grade").text.strip()
             except:
                 score = None
 

@@ -1,7 +1,9 @@
 import requests, environ
-
+env = environ.Env()
+    
 def getStoreId(storeName, storeAddress):
-    api_key = environ.Env.get_value("KAKAO_KEY")
+    KAKAO_KEY = env.get_value("KAKAO_KEY")
+    api_key = KAKAO_KEY
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
     
     headers = {

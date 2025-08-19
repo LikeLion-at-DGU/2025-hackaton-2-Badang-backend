@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import *
+from review.services import getStoreId
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -41,7 +42,7 @@ class MenuReadSerializer(serializers.ModelSerializer):
 
 #가게 설정 후 선택 정보 넘어가기 전 받을 response(가게 id) 
 class StoreRegisterResponseSerializer(serializers.ModelSerializer):
-    
+    id = getStoreId(storeName=Store.name, storeAddress=Store.address)  # 가게 ID를 반환하는 필드
     class Meta:
         model = Store
         fields = [
