@@ -40,21 +40,27 @@ class CollaborationDecisionResp(serializers.Serializer):
     
     
 #협업 요청받은 건 관련 DTO
-class IncomingListReq(serializers.Serializer):
-    responseStoreId = serializers.IntegerField(required=False)  # 필요 시
-    page = serializers.IntegerField(min_value=1, default=1)
-    size = serializers.IntegerField(min_value=1, max_value=100, default=20)
-
 class IncomingItem(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     requestStore = StoreBrief()
-    initialMessage = serializers.CharField(allow_blank=True)
-    IsAccepted = serializers.ChoiceField(choices=["PENDING","CANCELLED"])  # 설계에 맞게
-    requestedAt = serializers.DateTimeField()
+    initialMemo = serializers.CharField(allow_blank=True)
+    
+    def to_representation(self, obj: Collaborate):
+        partner = obj.requestStore
 
-class IncomingListResp(serializers.Serializer):
-    items = IncomingItem(many=True)
-    total = serializers.IntegerField()
+        return {
+            "collaborateId": obj.id,
+            "responseStore": {
+                "storeId": partner.id,
+                "storeName": partner.name,
+                "storeLatitude": partner.latitude,
+                "storeLongitude": partner.longitude,
+                "address": partner.address,
+            },
+            # 처음 신청 메시지
+            "initialMemo": obj.initialMessage or "",
+        }
+
 
 
 
