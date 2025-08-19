@@ -14,7 +14,23 @@ class StoreBrief(serializers.Serializer):
     longitude = serializers.FloatField()
     address = serializers.CharField()
     
-
+#협업 가능 가게 찾기
+class CollaborationSearchReq(serializers.Serializer):
+    type = serializers.IntegerField()
+    category = serializers.IntegerField()
+    query = serializers.CharField()
+    
+class CollaborationSearchRes(serializers.Serializer):
+    store = StoreBrief()
+    
+    def to_representation(self, store):
+        return {"store": {
+            "storeId": store.id, 
+            "name": store.name,
+            "latitude": store.latitude,
+            "longitude": store.longitude,
+            "address": store.address,
+        }}
 
 # 협업 신청시 필요한 DTO
 class CollaborationCreateReq(serializers.Serializer):
@@ -136,3 +152,4 @@ class CollaborationMemoPatchReq(serializers.Serializer):
 #협업 끝난 가게 삭제
 class CollaborationDeleteResp(serializers.Serializer):
     deleted = serializers.BooleanField()
+
