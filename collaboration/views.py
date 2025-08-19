@@ -86,11 +86,11 @@ class CollaborationView(APIView):
     def delete(self, request, collaborationId: int):
         
         collaborationId = int(collaborationId)
-        message = deleteCollaboration(collaborationId)
+        msg = deleteCollaboration(collaborationId)
         
         out = {
             "status": 200,
-            "message": message
+            "message": msg
         }
         
         return Response(out, status=status.HTTP_200_OK )
@@ -126,5 +126,21 @@ class ResponseCollaborateListView(APIView):
             "data": {
                 "responsetStores": items
             }
+        }
+        return Response(out, status=status.HTTP_200_OK)
+    
+class CollaborateDecisionView(APIView):
+    def patch(self, request):
+        req = CollaborationDecisionReq(data=request.data)
+        req.is_valid(raise_exception=True)
+        
+        collaborateId = req.validated_data["collaborateId"]
+        isAccepted = req.validated_data["isAccepted"]
+        
+        msg = decisionCollaboration(collaborateId, isAccepted)
+        
+        out = {
+            "status":200,
+            "message":msg
         }
         return Response(out, status=status.HTTP_200_OK)

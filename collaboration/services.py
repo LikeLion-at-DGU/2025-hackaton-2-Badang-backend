@@ -74,3 +74,11 @@ def deleteCollaboration(collaborateId: int) -> str:
     
     if delete:
         return "삭제 완료"
+    
+@transaction.atomic
+def decisionCollaboration(collaborateId:int, isAccepted:str=""):
+    
+    updated = (Collaborate.objects.filter(id=collaborateId)
+               .update(isAccepted=isAccepted))
+    if updated:
+        return "수락/거절 결정완료"
