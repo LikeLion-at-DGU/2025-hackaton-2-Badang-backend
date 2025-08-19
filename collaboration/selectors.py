@@ -53,9 +53,9 @@ def getActiveCollaboration(storeId : int):
 def getRequestCollaboration(storeId: int):
     qs = (
         Collaborate.objects
-        .filter(requestStore_id=storeId, isAccepted=Collaborate.Status.PENDING)   # ✅ 요청자=나
-        .select_related("requestStore", "responseStore")                           # ✅ N+1 방지
-        .order_by("-createdAt")                                                   # ✅ DB 정렬
+        .filter(requestStore_id=storeId, isAccepted=Collaborate.Status.PENDING) 
+        .select_related("requestStore", "responseStore")                           
+        .order_by("-createdAt")                                                   
     )
     return list(qs)
 
@@ -63,9 +63,9 @@ def getRequestCollaboration(storeId: int):
 def getResponseCollaboration(storeId: int):
     qs = (
         Collaborate.objects
-        .filter(responseStore_id=storeId, isAccepted=Collaborate.Status.PENDING)  # ✅ 응답자=나
-        .select_related("requestStore", "responseStore")                           # ✅ 타이포 수정 + N+1 방지
-        .order_by("-createdAt")                                                   # ✅ DB 정렬
+        .filter(responseStore_id=storeId, isAccepted=Collaborate.Status.PENDING)  
+        .select_related("requestStore", "responseStore")                           
+        .order_by("-createdAt")                                                   
     )
     return list(qs)
 
