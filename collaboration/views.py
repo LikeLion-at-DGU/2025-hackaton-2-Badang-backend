@@ -86,12 +86,61 @@ class CollaborationView(APIView):
     def delete(self, request, collaborationId: int):
         
         collaborationId = int(collaborationId)
-        message = deleteCollaboration(collaborationId)
+        msg = deleteCollaboration(collaborationId)
         
         out = {
             "status": 200,
-            "message": message
+            "message": msg
         }
         
         return Response(out, status=status.HTTP_200_OK )
         
+
+class RequestCollaborateListView(APIView):
+    def get(self, request, storeId:int):
+        storeId = int(storeId)
+        
+        rows = getRequestCollaboration(storeId)
+        items = OutgoingItem(rows, many=True).data
+        
+        out = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "requestStores": items
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK)
+    
+    
+class ResponseCollaborateListView(APIView):
+    def get(self, request, storeId:int):
+        storeId = int(storeId)
+        
+        rows = getResponseCollaboration(storeId)
+        items = IncomingItem(rows, many=True).data
+        
+        out = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "responsetStores": items
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK)
+    
+class CollaborateDecisionView(APIView):
+    def patch(self, request):
+        req = CollaborationDecisionReq(data=request.data)
+        req.is_valid(raise_exception=True)
+        
+        collaborateId = req.validated_data["collaborateId"]
+        isAccepted = req.validated_data["isAccepted"]
+        
+        msg = decisionCollaboration(collaborateId, isAccepted)
+        
+        out = {
+            "status":200,
+            "message":msg
+        }
+        return Response(out, status=status.HTTP_200_OK)
