@@ -95,3 +95,19 @@ class CollaborationView(APIView):
         
         return Response(out, status=status.HTTP_200_OK )
         
+
+class RequestCollaborateListView(APIView):
+    def get(self, request, storeId:int):
+        storeId = int(storeId)
+        
+        rows = getRequestCollaboration(storeId)
+        items = OutgoingItem(rows, many=True).data
+        
+        out = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "requestStores": items
+            }
+        }
+        return Response(out, status=status.HTTP_200_OK)
