@@ -1,29 +1,3 @@
-import requests, environ
-
-def getStoreId(storeName, storeAddress):
-    api_key = environ.Env.get_value("KAKAO_KEY")
-    url = "https://dapi.kakao.com/v2/local/search/keyword.json"
-    
-    headers = {
-        "Authorization": f"KakaoAK {api_key}"
-    }
-    
-    query = f"{storeName} {storeAddress}"
-    params = {"query": query}
-    
-    response = requests.get(url, headers=headers, params=params)
-    data = response.json()
-    
-    if data.get("documents"):
-        first_document = data["documents"][0]
-        
-        return {
-            "id": first_document["id"],
-            "placePhone": first_document["phone"],
-            "placeLatitude": first_document["y"],
-            "placeLongitude": first_document["x"],
-        }
-    
 import time
 import warnings
 from selenium import webdriver
