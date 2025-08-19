@@ -4,6 +4,7 @@ from django.db import models
 
 class Trend(models.Model):
     trendData = models.TextField()
+    createdAt = models.DateTimeField(auto_now_add=True)
 
 class KeyWordImage(models.Model):
     keyWordImageUrl = models.TextField()

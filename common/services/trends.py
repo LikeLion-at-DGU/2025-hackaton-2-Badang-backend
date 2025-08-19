@@ -1,5 +1,6 @@
-# ai/services/trends.py
 from .llm import run_llm
+
+
 def extract_trends(trend_payload: dict) -> dict:
     system = (
         "너는 마케팅 리서처다. 입력된 최근 구글 트렌드 데이터를 분석해서 "
