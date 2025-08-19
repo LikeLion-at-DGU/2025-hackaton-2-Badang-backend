@@ -52,11 +52,12 @@ class StoreRegisterResponseSerializer(serializers.ModelSerializer):
 #가게 상세 정보 설정 후 받을 response
 class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):
     menus = MenuReadSerializer(many=True, read_only=True)
-    
+
+    username = serializers.CharField(source="user.userId.username", read_only=True)
+
     class Meta:
         model = Store
-        fields ='__all__'
-
+        exclude = ("user",)  # FK는 응답에서 숨김
 
 
 #---request 전용 serializer --
