@@ -41,18 +41,18 @@ class CollaborationCreateReq(serializers.Serializer):
 
 class CollaborationCreatedResp(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    IsAccepted = serializers.ChoiceField(choices=["PENDING"])
+    isAccepted = serializers.ChoiceField(choices=["PENDING"])
     
     
     
 #수락 거절 DTO
 class CollaborationDecisionReq(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    IsAccepted = serializers.ChoiceField(choices=["ACCEPT","REJECT"])
+    isAccepted = serializers.ChoiceField(choices=["ACCEPTED","REJECTED"])
 
 class CollaborationDecisionResp(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    IsAccepted = serializers.ChoiceField(choices=["ACCEPTED","REJECTED"])
+    isAccepted = serializers.ChoiceField(choices=["ACCEPTED","REJECTED"])
   
     
     
@@ -152,5 +152,5 @@ class CollaborationMemoPatchReq(serializers.Serializer):
 
 #협업 끝난 가게 삭제
 class CollaborationDeleteResp(serializers.Serializer):
-    deleted = serializers.BooleanField()
+    deletedCollaborateId = serializers.IntegerField()
 

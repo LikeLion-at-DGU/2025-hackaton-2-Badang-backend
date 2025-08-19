@@ -7,9 +7,15 @@ from main.models import *
 from .models import *
 import math
 from .services import DomainError
+from typing import Optional
 
 # 가까운 거리 정렬 위한 계산용
 def _haversine_km(lat1, lon1, lat2, lon2) -> float:
+    
+    #위도 경도 안잡히면
+    if None in (lat1, lon1, lat2, lon2):
+        raise ValueError("haversine: 위도 경도 좌표가 제대로 입력되지 않았습니다")
+    
     R = 6371.0  # 지구 반지름(km)
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
@@ -63,7 +69,10 @@ def getResponseCollaboration(storeId: int):
     )
     return list(qs)
 
-def getCollaborationSerach(storeId:int, type: int | None = None, category: int | None = None, query:str=""):
+def getCollaborationSearch(storeId:int, 
+                            type_: Optional[int] = None,
+                            category_: Optional[int] = None,
+                            query:str=""):
     
     try:
         me = Store.objects.only("latitude", "longitude").get(id=storeId)
@@ -75,10 +84,10 @@ def getCollaborationSerach(storeId:int, type: int | None = None, category: int |
         .filter(is_willing_collaborate=True)
         .exclude(id=storeId))
     
-    if type is not None:
-        qs = qs.filter(type=type)
-    if category is not None:
-        qs = qs.filter(category=category)
+    if type_ is not None:
+        qs = qs.filter(type=type_)
+    if category_ is not None:
+        qs = qs.filter(category=category_)
         
     #query 가 이름에 포함된 가게로 필터링
     if query:
