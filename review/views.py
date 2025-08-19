@@ -3,7 +3,7 @@ from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .serializers import StorePromptResponseSerializer
+from .serializers import StoreReviewResponseSerializer
 from .selectors import get_store_analysis_data
 
 class ReviewAnalysisViewSet(viewsets.ViewSet, mixins.ListModelMixin):
@@ -43,8 +43,8 @@ class ReviewAnalysisViewSet(viewsets.ViewSet, mixins.ListModelMixin):
             "message": "프롬프트 검색 성공",
             "data": analysis_data
         }
-        
-        serializer = StorePromptResponseSerializer(data=response_data)
+
+        serializer = StoreReviewResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
