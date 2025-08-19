@@ -10,7 +10,6 @@ class ProfileSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='profileName')
     phoneNumber = serializers.CharField(source='profilePhoneNumber')
     
-    
     userId = serializers.IntegerField(source='pk', read_only=True)
     
     class Meta:
@@ -42,12 +41,26 @@ class MenuReadSerializer(serializers.ModelSerializer):
 
 #가게 설정 후 선택 정보 넘어가기 전 받을 response(가게 id) 
 class StoreRegisterResponseSerializer(serializers.ModelSerializer):
-    id = getStoreId(storeName=Store.name, storeAddress=Store.address)  # 가게 ID를 반환하는 필드
+    phoneNumber = serializers.CharField(read_only=True)
+    placeLatitude = serializers.FloatField(read_only=True)
+    placeLongitude = serializers.FloatField(read_only=True)
+
     class Meta:
         model = Store
-        fields = [
-            'id','name'
-        ]
+        fields = ["id", "name", "address", "phoneNumber", "placeLatitude", "placeLongitude"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        result = getStoreId(storeName=instance.name, storeAddress=instance.address)
+
+        if result:
+            id, phoneNumber, placeLatitude, placeLongitude = result
+            data.update({
+                "phoneNumber": phoneNumber,
+                "placeLatitude": placeLatitude,
+                "placeLongitude": placeLongitude,
+            })
+        return data
         
 #가게 상세 정보 설정 후 받을 response
 class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):

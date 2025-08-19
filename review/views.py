@@ -3,12 +3,10 @@ from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .serializers import StorePromptResponseSerializer
+from .serializers import StoreReviewResponseSerializer
 from .selectors import get_store_analysis_data
 
 class ReviewAnalysisViewSet(viewsets.ViewSet, mixins.ListModelMixin):
-    # url_path를 'analysis'가 아닌, 메서드 이름인 'get_analysis'로 사용하도록 수정합니다.
-    # 혹은 url_path를 아예 지정하지 않아도 됩니다.
     @action(detail=False, methods=['GET'])
     def get_analysis(self, request):
         store_id = request.query_params.get('storeId')
@@ -45,10 +43,12 @@ class ReviewAnalysisViewSet(viewsets.ViewSet, mixins.ListModelMixin):
             "message": "프롬프트 검색 성공",
             "data": analysis_data
         }
-        
-        serializer = StorePromptResponseSerializer(data=response_data)
+
+        serializer = StoreReviewResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
 
 
 # Public test endpoint (no auth) to quickly verify the analysis API in Postman/curl.
