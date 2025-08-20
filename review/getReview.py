@@ -1,5 +1,3 @@
-# review/getReview.py
-
 import time
 from datetime import datetime
 from selenium import webdriver
