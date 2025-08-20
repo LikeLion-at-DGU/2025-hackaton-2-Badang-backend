@@ -137,3 +137,27 @@ class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
                 Menu.objects.bulk_create(to_create)
 
         return instance
+
+    
+class loginRequestSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+class profileSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = ['userId', 'username', 'profileName', 'profilePhoneNumber']
+
+    def getUsername(self, obj: Profile) -> str:
+        # OneToOne to User (field name userId)
+        return obj.userId.username if obj.userId else ''
+
+class LoginResultSerializer(serializers.Serializer):
+    ok = serializers.BooleanField()
+    reason = serializers.CharField(allow_blank=True)
+    userId = serializers.IntegerField(required=False)
+    username = serializers.CharField(required=False)
+    profileName = serializers.CharField(required=False)
+    profilePhoneNumber = serializers.CharField(required=False)

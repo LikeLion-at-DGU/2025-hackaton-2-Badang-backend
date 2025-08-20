@@ -155,6 +155,8 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_ROOT = BASE_DIR / "media"     # 파일이 실제로 저장될 디렉터리
+MEDIA_URL = "/media/"               # 브라우저에서 접근할 URL prefix
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

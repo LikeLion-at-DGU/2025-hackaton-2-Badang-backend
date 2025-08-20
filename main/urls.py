@@ -21,4 +21,6 @@ store_router.register("stores", StoreViewSet, basename="stores")
 urlpatterns = [
     path("", include(user_router.urls)),
     path("", include(store_router.urls)),
+    path('login', LoginView.as_view(), name='authLogin'),
+    path('me', MeView.as_view(), name='authMe'),
 ]
