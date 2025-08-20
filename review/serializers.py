@@ -11,14 +11,24 @@ class ReviewPercentageSerializer(serializers.Serializer):
     middlePercentage = serializers.FloatField()
     badPercentage = serializers.FloatField()
 
-class ReviewAnalysisSerializer(serializers.Serializer):
-    storeName = serializers.CharField()
-    goodPoint = serializers.CharField()
-    badPoint = serializers.CharField()
-    percentage = ReviewPercentageSerializer()
-    analysisKeyword = serializers.CharField()
-    analysisProblem = serializers.CharField()
-    analysisSolution = serializers.CharField()
+class ReviewAnalysisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReviewAnalysis
+        fields = [
+            "reviewAnalysisId",
+            "storeId",
+            "storeName",
+            "goodPoint",
+            "badPoint",
+            "goodPercentage",
+            "middlePercentage",
+            "badPercentage",
+            "analysisKeyword",
+            "analysisProblem",
+            "analysisSolution",
+            "createdAt",
+            "updatedAt",
+        ]
 
 class StoreReviewResponseSerializer(serializers.Serializer):
     statusCode = serializers.IntegerField()

@@ -1,4 +1,11 @@
-import requests, environ
+import requests, environ, json
+from datetime import timedelta
+from django.utils import timezone
+from .models import Review, Reviewer
+from main.models import Store
+from .reviewAnalisys import review_analysis
+from common.services.llm import run_llm
+from .getReview import getKakaoReview
 env = environ.Env()
     
 def getStoreId(storeName, storeAddress):
@@ -26,99 +33,72 @@ def getStoreId(storeName, storeAddress):
             "placeLongitude": first_document["x"],
         }
     
-import time
-import warnings
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-from django.core.management.base import BaseCommand
-from review.models import Review, Reviewer
-from main.models import Store
-
-warnings.filterwarnings("ignore")
-
-class Command(BaseCommand):
-    help = "카카오맵 리뷰 크롤러"
-
-    def add_arguments(self, parser):
-        parser.add_argument("--store_id", type=str, help="카카오맵 storeId")
-
-    def handle(self, *args, **options):
-        store_id = options['store_id']
-        if not store_id:
-            self.stdout.write(self.style.ERROR("store_id가 필요합니다."))
-            return
-
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-        url = f"https://place.map.kakao.com/{store_id}#review"
-        driver.get(url)
-        
-        self.stdout.write(self.style.SUCCESS("페이지 로드 후 스크롤을 시작합니다."))
-        time.sleep(5)  # 페이지 로딩 대기
-
-        # 스크롤 내리면서 리뷰 로딩
-        last_height = driver.execute_script("return document.body.scrollHeight")
-        while True:
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            new_height = driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
-            
-        # Selenium을 사용하여 리뷰 elements 찾기
-        try:
-            # 리뷰 목록이 로드될 때까지 최대 10초 대기
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".list_review > li"))
-            )
-            review_items = driver.find_elements(By.CSS_SELECTOR, ".list_review > li")
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"리뷰 elements를 찾을 수 없습니다: {e}"))
-            review_items = []
-        
-        if not review_items:
-            self.stdout.write(self.style.WARNING("리뷰가 없습니다."))
-            driver.quit()
-            return
-
-        store = Store.objects.filter(kakao_place_id=store_id).first()
-        if not store:
-            self.stdout.write(self.style.WARNING(f"스토어 ID {store_id}를 찾을 수 없습니다."))
-            driver.quit()
-            return
-            
-        for item in review_items:
-            # 리뷰어 이름: .txt_username (스크린샷 기반)
-            try:
-                reviewer_name = item.find_element(By.CSS_SELECTOR, ".txt_username").text.strip()
-            except:
-                reviewer_name = "익명"
-
-            # 리뷰 내용: .txt_comment (스크린샷 기반)
-            try:
-                comment = item.find_element(By.CSS_SELECTOR, ".txt_comment").text.strip()
-            except:
-                comment = None
-
-            # 리뷰 점수: .num_rate (스크린샷 기반)
-            try:
-                score = item.find_element(By.CSS_SELECTOR, ".num_rate").text.strip()
-            except:
-                score = None
-
-            reviewer, _ = Reviewer.objects.get_or_create(name=reviewer_name)
-
-            Review.objects.create(
+def updateReviewData(store: Store, reviewData: list):
+    createReview = []
+    
+    for data in reviewData:
+        reviewer, _ = Reviewer.objects.get_or_create(
+            follower=data.get("follower", 0),
+            reviewCount=data.get("reviewCount", 0),
+            reviewAvg=data.get("reviewAvg", 0.0),
+            reviewerName=data['reviewerName']
+        )
+        createReview.append(
+            Review(
+                storeId=store,
                 reviewer=reviewer,
-                text=comment,
-                score=score,
-                store=store
+                reviewContent=data['content'],
+                reviewDate=data['date'],
+                reviewRate=data['rate']
             )
+        )
+    Review.objects.bulk_create(createReview)
 
-        self.stdout.write(self.style.SUCCESS(f"{len(review_items)}개의 리뷰를 성공적으로 크롤링했습니다."))
-        driver.quit()
+def getReviewAnalysis(store_id: int, term: int):
+    try:
+        store = Store.objects.get(pk=store_id)
+        # Store 모델에 카카오맵 ID를 저장하는 필드가 'kakao_place_id'라고 가정
+        if not store.kakao_place_id:
+            raise ValueError("가게에 kakao_place_id가 등록되어 있지 않습니다.")
+    except (Store.DoesNotExist, ValueError) as e:
+        print(f"서비스 처리 불가: {e}")
+        return None # 가게가 없거나 kakao_id가 없으면 None 반환
+
+    # 2. 최신 리뷰를 위해 크롤러 실행 및 DB 업데이트
+    # (주의: API 호출마다 크롤링이 실행되어 느릴 수 있음. 캐싱 전략 고려 필요)
+    scraped_reviews = getKakaoReview(store.kakao_place_id)
+    if scraped_reviews:
+        updateReviewData(store, scraped_reviews)
+
+    # 3. 'term' 값에 따라 리뷰 필터링
+    end_date = timezone.now()
+    reviews_qs = store.reviews.all()
+    
+    if term == 1: # 한 달
+        start_date = end_date - timedelta(days=30)
+        reviews_qs = reviews_qs.filter(reviewDate__range=[start_date, end_date])
+    elif term == 2: # 일주일
+        start_date = end_date - timedelta(days=7)
+        reviews_qs = reviews_qs.filter(reviewDate__range=[start_date, end_date])
+    
+    if not reviews_qs.exists():
+        return {"message": "해당 기간에 분석할 리뷰가 없습니다."}
+
+    # 4. 필터링된 리뷰로 LLM 페이로드 생성 (버그 수정)
+    review_payload = [
+        {
+            "reviewContent": r.reviewContent,
+            "reviewRate": r.reviewRate,
+            "reviewDate": r.reviewDate.strftime("%Y-%m-%d"),
+        } for r in reviews_qs
+    ]
+    payload = {"storeName": store.name, "reviews": review_payload}
+
+    # 5. LLM 분석 실행
+    try:
+        # review_analysis는 LLM 호출 후 API 명세서의 data 부분과 동일한 dict를 반환한다고 가정
+        analysis_result = review_analysis(payload) 
+        return analysis_result["data"]
+    except Exception as e:
+        print(f"리뷰 분석 실패: {e}")
+        return {"message": "리뷰 분석 중 오류가 발생했습니다."}
