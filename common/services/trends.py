@@ -1,7 +1,7 @@
 from .llm import run_llm
 
 
-def extract_trends(trend_payload: dict) -> dict:
+def extractTrends(trendPayload: dict) -> dict:
     system = (
         "역할: 당신은 소상공인 리서치 분석가다." 
         "입력: 구글 트렌드 API 상위 검색어"
@@ -18,7 +18,7 @@ def extract_trends(trend_payload: dict) -> dict:
         "* 예시 입력→출력:"
         "- 입력: 레알 마드리드 vs 오사수나, 최정원, 민방위 훈련, 캔바, 달 - 출력: 라리가 개막"
     )
-    user = {"data": trend_payload}
+    user = {"data": trendPayload}
     text = run_llm(system, user)
     # text는 JSON 문자열일 것이므로 파싱 후 DB에 저장
     
