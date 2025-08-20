@@ -1,13 +1,15 @@
-from rest_framework.routers import DefaultRouter
 from django.urls import path
-from .views import SeedTrendsApi, GetTrendApi
-# router = DefaultRouter()
-# router.register()
+from .views import TrendsToKeywordView, GetTrendApi, CreateKeywordView
 
-# urlpatterns = router.urls
-app_name = "trends"
+app_name = "trend"
 
 urlpatterns = [
-    path("seed", SeedTrendsApi.as_view()),
-    path("<int:trend_id>", GetTrendApi.as_view()),
+    # 트렌드 데이터로 AI 키워드 생성
+    path("create-from-trends/", TrendsToKeywordView.as_view(), name="create-from-trends"),
+    
+    # 특정 트렌드 조회
+    path("<int:trend_id>/", GetTrendApi.as_view(), name="get-trend"),
+    
+    # 사용자 직접 키워드 생성
+    path("keywords/create/", CreateKeywordView.as_view(), name="create-keyword"),
 ]

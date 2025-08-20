@@ -3,6 +3,7 @@ import json
 from django.db import transaction
 from django.conf import settings
 from .models import Trend, Keyword
+from main.models import Store
 from common.services.images import *
 from common.services.trends import *
 
@@ -44,7 +45,7 @@ def saveSingleKeywordToDB(trends: list[str]) -> Keyword:
             trend=trend,
             status="pending",
             isImage=False,
-            isCreatedByUser=False,
+            isCreatedByUser=None,
         )
         for name in extractedKeywords if name and str(name).strip()
     ]
@@ -74,26 +75,24 @@ def saveSingleKeywordToDB(trends: list[str]) -> Keyword:
     return trend
 
 @transaction.atomic
-def keywordSaveByUserSimple(keywordName: str = "") -> Keyword:
-    
-    
+def keywordSaveByUserSimple(keywordName: str = "", store: Store = None) -> Keyword:
+
     if not keywordName or not keywordName.strip():
         raise ValueError("키워드를 입력해주세요.")
     
-    # Keyword 객체 생성 (trend=null 허용하도록 모델 수정 필요)
+    # Keyword 객체 생성
     keyword = Keyword.objects.create(
         keywordName=keywordName.strip(),
-        # trend=None,  # ForeignKey가 null=True여야 함
+        trend=None,
         status="pending",
         isImage=False,
-        isCreatedByUser=True
+        isCreatedByUser=store 
     )
     
     # 공통 이미지 생성 함수 호출
     _generateImageForKeyword(keyword)
     
     return keyword
-
 
 def _generateImageForKeyword(keyword: Keyword):
     
