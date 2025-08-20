@@ -69,39 +69,38 @@ class Command(BaseCommand):
         self.stdout.write("Store 데이터를 2개 생성합니다...")
         store1 = Store.objects.create(
             user=profile1,
-            name='우리동네 맛집',
-            address='서울 강남구 역삼동 123-45',
-            latitude=37.5012,
-            longitude=127.0396,
-            kakao_place_id=12345,
+            name='동대닭한마리',
+            address='서울 중구 서애로 16-5',
+            kakao_place_id=25085251,
+            latitude=37.5635,
+            longitude=126.998,
             type=type_food,
             category=category_korean,
             isWillingCollaborate=True,
-            content='유기농 재료로 만든 퓨전 한식 전문점입니다.',
+            content='신관/본관으로 이루어져 넓고 자리가 많습니다.',
             visitor=visitor1
         )
 
         store2 = Store.objects.create(
             user=profile2,
-            name='힐링 커피하우스',
-            address='서울 서초구 서초동 987-65',
-            latitude=37.4950,
-            longitude=127.0270,
-            kakao_place_id=54321,
+            name='매머드익스프레스',
+            address='서울 중구 서애로1길 18-11',
+            kakao_place_id=1281366952,
+            latitude=37.5636,
+            longitude=126.998,
             type=type_cafe,
             category=category_coffee,
             isWillingCollaborate=False,
-            content='조용하고 아늑한 분위기에서 즐기는 스페셜티 커피.',
+            content='1층부터 3층까지 넓은 자리를 가진 카페',
             visitor=visitor2
         )
         self.stdout.write(self.style.SUCCESS("Store 2개 생성 완료"))
 
         # 5. Menu 생성 (Store에 연결)
         self.stdout.write("Menu 데이터를 생성합니다...")
-        Menu.objects.create(store=store1, name='특제 김치찜', price=15000)
-        Menu.objects.create(store=store1, name='한우 불고기 정식', price=25000)
-        Menu.objects.create(store=store2, name='아메리카노', price=4500)
-        Menu.objects.create(store=store2, name='수제 카라멜 마끼아또', price=6000)
+        Menu.objects.create(store=store1, name='닭한마리', price=15000)
+        Menu.objects.create(store=store2, name='아메리카노', price=1500)
+        Menu.objects.create(store=store2, name='카페라떼', price=3200)
         self.stdout.write(self.style.SUCCESS("Menu 생성 완료"))
 
         self.stdout.write(self.style.SUCCESS("모든 더미 데이터 생성이 완료되었습니다."))

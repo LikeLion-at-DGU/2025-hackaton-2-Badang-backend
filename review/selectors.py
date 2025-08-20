@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from django.core.exceptions import ObjectDoesNotExist
 from django.forms.models import model_to_dict
 
@@ -79,40 +79,47 @@ def get_store_analysis_data(store_id: int, term: int) -> Dict[str, Any]:
 
     # 기간에 따른 데이터 가공 로직 (예시)
     if term == 0:
-        good_percentage = 65.0
-        middle_percentage = 15.0
-        bad_percentage = 20.0
-        analysis_keyword = "서비스, 청결"
-        analysis_problem = "일부 손님들이 서비스 불만에 대해 언급하고 있습니다."
-        analysis_solution = "직원 교육을 통해 서비스 품질을 개선해야 합니다."
+        return {
+            "storeName": store_name,
+            "goodPoint": "신선한 재료가 많아요",
+            "badPoint": "직원이 자주 바뀌어요",
+            "percentage": {
+                "goodPercentage": 65.0,
+                "middlePercentage": 15.0,
+                "badPercentage": 20.0
+            },
+            "analysisKeyword": "서비스, 청결",
+            "analysisProblem": "일부 고객들이 서비스에 불만을 표현합니다.",
+            "analysisSolution": "직원 교육을 강화하고 매장 청결을 유지하세요."
+        }
     elif term == 1:
-        good_percentage = 59.6
-        middle_percentage = 10.4
-        bad_percentage = 30.0
-        analysis_keyword = "불친절이라는 단어가 자주 등장하네요!"
-        analysis_problem = "불친절하다는 건 직원 교육..."
-        analysis_solution = "직원 교육/손님응대에 신경 쓰시면...."
+        return {
+            "storeName": store_name,
+            "goodPoint": "집에서 가깝고 맛있어요",
+            "badPoint": "직원이 불친절해요",
+            "percentage": {
+                "goodPercentage": 59.6,
+                "middlePercentage": 10.4,
+                "badPercentage": 30.0
+            },
+            "analysisKeyword": "불친절이라는 단어가 자주 등장하네요!",
+            "analysisProblem": "불친절하다는 건 직원 교육이 필요하다는 뜻입니다.",
+            "analysisSolution": "직원 교육/손님응대 개선에 집중하세요."
+        }
     elif term == 2:
-        good_percentage = 70.0
-        middle_percentage = 10.0
-        bad_percentage = 20.0
-        analysis_keyword = "맛있다, 신선하다"
-        analysis_problem = "특별한 문제점은 보이지 않습니다."
-        analysis_solution = "현재의 긍정적인 평가를 유지하기 위해 지속적으로 노력해야 합니다."
+        return {
+            "storeName": store_name,
+            "goodPoint": "맛있고 신선해요",
+            "badPoint": "좌석이 부족해요",
+            "percentage": {
+                "goodPercentage": 70.0,
+                "middlePercentage": 10.0,
+                "badPercentage": 20.0
+            },
+            "analysisKeyword": "맛있다, 신선하다",
+            "analysisProblem": "특별한 문제점은 크게 보이지 않습니다.",
+            "analysisSolution": "긍정적인 평가를 유지하세요."
+        }
     else:
         # 유효하지 않은 term 값 처리
         return None
-
-    return {
-        "storeName": store_name,
-        "goodPoint": "집에서 가깝고 맛있어요",
-        "badPoint": "직원이 불친절해요",
-        "percentage": {
-            "goodPercentage": good_percentage,
-            "middlePercentage": middle_percentage,
-            "badPercentage": bad_percentage
-        },
-        "analysisKeyword": analysis_keyword,
-        "analysisProblem": analysis_problem,
-        "analysisSolution": analysis_solution,
-    }
