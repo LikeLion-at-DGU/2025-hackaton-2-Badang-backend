@@ -155,7 +155,7 @@ class ResponseCollaborateListView(APIView):
             "status": 200,
             "message": "조회 성공",
             "data": {
-                "responsetStores": items
+                "responseStores": items
             }
         }
         return Response(out, status=status.HTTP_200_OK)
