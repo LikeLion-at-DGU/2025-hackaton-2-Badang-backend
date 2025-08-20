@@ -9,7 +9,7 @@ class Trend(models.Model):
 class Keyword(models.Model):
     keywordName = models.CharField(max_length=50)
     keywordImageUrl = models.URLField(blank=True, null=True)
-    trend = models.ForeignKey(Trend, on_delete=models.CASCADE, related_name='keywords')
+    trend = models.ForeignKey(Trend, on_delete=models.CASCADE, related_name='keywords', null=True)
     isImage = models.BooleanField(default=False)
     keywordCreatedAt = models.DateField(auto_now_add=True)
     isCreatedByUser = models.BooleanField(default= False)

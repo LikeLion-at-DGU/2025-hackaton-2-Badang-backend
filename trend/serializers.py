@@ -26,3 +26,14 @@ class TrendImageRes(serializers.Serializer):
     keyword = serializers.CharField()
     image_url = serializers.CharField(allow_null=True)
     status = serializers.CharField()
+    
+class KeywordRes(serializers.ModelSerializer):
+    class Meta:
+        model = Keyword
+        fields = ["keywordName", "keywordImageUrl", "status", "isImage", "keywordCreatedAt"]
+
+class TrendRes(serializers.ModelSerializer):
+    keywords = KeywordRes(many=True, read_only=True)
+    class Meta:
+        model = Trend
+        fields = ["id", "trendData", "createdAt", "keywords"]
