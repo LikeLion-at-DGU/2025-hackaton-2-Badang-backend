@@ -1,93 +1,20 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import *
-from review.services import getStoreId
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(write_only=True)              # -> User.username
-    password = serializers.CharField(write_only=True, min_length=4)
-    name = serializers.CharField(source='profileName')
-    phoneNumber = serializers.CharField(source='profilePhoneNumber')
+
+class signupSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    password = serializers.CharField()
+    name = serializers.CharField()
+    phoneNumber = serializers.CharField()
     
-    userId = serializers.IntegerField(source='pk', read_only=True)
+class storeSerializerReq(serializers.Serializer):
+    name = serializers.CharField()
+    address = serializers.CharField()
     
-    class Meta:
-        model = Profile
-        fields = ['id', 'password', 'name', 'phoneNumber', 'userId']
-        read_only_fields = [
-            'userId'
-        ]
-
-    @transaction.atomic
-    def create(self, validated_data):
-        username = validated_data.pop('id')
-        raw_pw = validated_data.pop('password')
-        user = User(username=username)
-        user.set_password(raw_pw)
-        user.save()
-        profile = Profile.objects.create(userId=user, **validated_data)
-        return profile
-
-
-
-#---response 전용 serializer--
-
-class MenuReadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Menu
-        fields = ['id', 'name', 'price']
-
-
-#가게 설정 후 선택 정보 넘어가기 전 받을 response(가게 id) 
-class StoreRegisterResponseSerializer(serializers.ModelSerializer):
-    phoneNumber = serializers.CharField(read_only=True)
-    placeLatitude = serializers.FloatField(read_only=True)
-    placeLongitude = serializers.FloatField(read_only=True)
-
-    class Meta:
-        model = Store
-        fields = ["id", "name", "address", "phoneNumber", "placeLatitude", "placeLongitude"]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        result = getStoreId(storeName=instance.name, storeAddress=instance.address)
-
-        if result:
-            id, phoneNumber, placeLatitude, placeLongitude = result
-            data.update({
-                "phoneNumber": phoneNumber,
-                "placeLatitude": placeLatitude,
-                "placeLongitude": placeLongitude,
-            })
-        return data
-        
-#가게 상세 정보 설정 후 받을 response
-class StoreDetailRegisterResponseSerializer(serializers.ModelSerializer):
-    menus = MenuReadSerializer(many=True, read_only=True)
-
-    username = serializers.CharField(source="user.userId.username", read_only=True)
-
-    class Meta:
-        model = Store
-        exclude = ("user",)  # FK는 응답에서 숨김
-
-
-#---request 전용 serializer --
-
-#가게 설정 시 request
-class StoreRegisterRequestSerializer(serializers.ModelSerializer):
     
-    userId = serializers.PrimaryKeyRelatedField(source='user', queryset=Profile.objects.all())
-    
-    class Meta:
-        model = Store
-        fields = [
-            'userId','name', 'address'
-        ]
-        
-        
-#menu 이름, 가격으로 입력받기
 class MenuSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50)
     price = serializers.IntegerField(min_value=0)
@@ -99,65 +26,16 @@ class MenuSerializer(serializers.Serializer):
             raise serializers.ValidationError("메뉴 이름이 비어 있습니다.")
         return v
     
-#가게 상세 정보 요청 requset
-class StoreDetailRegisterRequestSerializer(serializers.ModelSerializer):
-    isWillingCollaborate = serializers.BooleanField(source='is_willing_collaborate', required=False)
-    storeContent = serializers.CharField(source='content', required=False, allow_blank=True)
-    #선택 항목들
-    type = serializers.PrimaryKeyRelatedField(queryset=Type.objects.all(), required=True, allow_null=True)
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True, allow_null=True)
-    visitor = serializers.PrimaryKeyRelatedField(queryset=Visitor.objects.all(), required=True, allow_null=True)
     
-    #직접 입력하시는 메뉴
-    menus = MenuSerializer(many=True, required=False)
-     
-    class Meta:
-        model = Store
-        fields = [
-            'type',
-            'category',
-            'visitor',
-            'isWillingCollaborate',
-            'storeContent',
-            'menus',
-        ]
-    @transaction.atomic
-    def update(self, instance: Store, validated_data):
-        menus = validated_data.pop('menus', None)
-
-        # 기본 필드 적용
-        for k, v in validated_data.items():
-            setattr(instance, k, v)
-        instance.save()
-
-        if menus is not None:
-            instance.menus.all().delete()
-            to_create = [Menu(store=instance, name=m['name'], price=m['price']) for m in menus]
-            if to_create:
-                Menu.objects.bulk_create(to_create)
-
-        return instance
-
+class storeUpdateSerializerReq(serializers.Serializer):
+    type = serializers.IntegerField()
+    category = serializers.IntegerField()
+    visitor = serializers.IntegerField()
+    isWillingCollaborate = serializers.CharField()
+    storeContent = serializers.CharField(required=False, allow_blank=True, default="")
+    menu = MenuSerializer(many=True, required=False)
     
-class loginRequestSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
 
-class profileSerializer(serializers.ModelSerializer):
-    username = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Profile
-        fields = ['userId', 'username', 'profileName', 'profilePhoneNumber']
-
-    def getUsername(self, obj: Profile) -> str:
-        # OneToOne to User (field name userId)
-        return obj.userId.username if obj.userId else ''
-
-class LoginResultSerializer(serializers.Serializer):
-    ok = serializers.BooleanField()
-    reason = serializers.CharField(allow_blank=True)
-    userId = serializers.IntegerField(required=False)
-    username = serializers.CharField(required=False)
-    profileName = serializers.CharField(required=False)
-    profilePhoneNumber = serializers.CharField(required=False)
+class loginSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    password = serializers.CharField(write_only=True) 
