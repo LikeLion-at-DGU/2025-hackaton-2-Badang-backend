@@ -131,30 +131,50 @@ class loginView(APIView):
         req.is_valid(raise_exception=True)
         
         try:
+            # 1. Service를 호출하여 유저 인증 및 기본 정보, 토큰을 받습니다.
             result = profileLogin(
                 username=req.validated_data["id"],
                 password=req.validated_data["password"]
             )
             
-            response = Response({
+            # 2. 인증된 user 객체를 사용하여 연결된 storeId를 찾습니다.
+            store_id = None
+            try:
+                # 2-1. User 객체로 Profile 객체를 찾습니다. (필드명: userId)
+                profile = Profile.objects.get(userId=result['user'])
+                
+                # 2-2. Profile 객체로 Store 객체를 찾습니다. (필드명: user)
+                #      만약 Store 모델의 필드명이 다르다면 이 부분도 수정해야 합니다.
+                store = Store.objects.get(user=profile) 
+                store_id = store.id
+            except (Profile.DoesNotExist, Store.DoesNotExist):
+                # 해당 유저에게 연결된 프로필이나 가게가 없어도 오류 없이 진행합니다.
+                # store_id는 그대로 None 값을 유지합니다.
+                pass
+            
+            # 3. 최종 응답 데이터를 구성합니다.
+            response_data = {
                 'message': '로그인 성공',
                 'userId': result['user'].id,
-                'username': result['user'].username
-            }, status=status.HTTP_200_OK)
+                'username': result['user'].username,
+                'storeId': store_id  # 위에서 찾은 store_id를 포함합니다.
+            }
             
-            # HTTP-only 쿠키로 토큰 설정
+            response = Response(response_data, status=status.HTTP_200_OK)
+            
+            # 4. HTTP-only 쿠키로 토큰을 설정합니다.
             response.set_cookie(
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=False,
+                secure=False,  # 개발 환경에서는 False, 배포 시에는 True로 변경
                 samesite='Lax'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=False,
+                secure=False,  # 개발 환경에서는 False, 배포 시에는 True로 변경
                 samesite='Lax'
             )
             
