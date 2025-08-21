@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 
 from .services import *
+from .selectors import *
 
 
 class DomainError(Exception):
@@ -120,4 +121,115 @@ class storeView(APIView):
             
         except DomainError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class loginView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        req = loginSerializer(data=request.data)
+        req.is_valid(raise_exception=True)
         
+        try:
+            result = profileLogin(
+                username=req.validated_data["id"],
+                password=req.validated_data["password"]
+            )
+            
+            response = Response({
+                'message': '로그인 성공',
+                'userId': result['user'].id,
+                'username': result['user'].username
+            }, status=status.HTTP_200_OK)
+            
+            # HTTP-only 쿠키로 토큰 설정
+            response.set_cookie(
+                'access_token', 
+                result['tokens']['access'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'refresh_token', 
+                result['tokens']['refresh'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            
+            return response
+            
+        except DomainError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class logoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.COOKIES.get('refresh_token')
+            
+            if not refresh_token:
+                return Response({
+                    'error': 'refresh token이 없습니다.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 로그아웃 처리
+            profileLogout(refresh_token)
+            
+            response = Response({
+                'message': '로그아웃 성공'
+            }, status=status.HTTP_200_OK)
+            
+            # 쿠키에서 토큰 제거
+            response.delete_cookie('access_token')
+            response.delete_cookie('refresh_token')
+            
+            return response
+            
+        except DomainError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# 추가: 토큰 갱신 기능 (선택사항)
+class tokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.COOKIES.get('refresh_token')
+            
+            if not refresh_token:
+                return Response({
+                    'error': 'refresh token이 없습니다.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 새로운 access token 생성
+            token = RefreshToken(refresh_token)
+            new_access_token = token.access_token
+            
+            response = Response({
+                'message': '토큰 갱신 성공'
+            }, status=status.HTTP_200_OK)
+            
+            # 새 access token을 쿠키에 설정
+            response.set_cookie(
+                'access_token',
+                str(new_access_token),
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            
+            return response
+            
+        except Exception as e:
+            return Response({
+                'error': '토큰 갱신 실패'
+            }, status=status.HTTP_400_BAD_REQUEST)

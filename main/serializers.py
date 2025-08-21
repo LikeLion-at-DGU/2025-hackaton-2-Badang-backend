@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import *
-from review.services import getStoreId
 
 
 
@@ -36,4 +35,7 @@ class storeUpdateSerializerReq(serializers.Serializer):
     storeContent = serializers.CharField(required=False, allow_blank=True, default="")
     menu = MenuSerializer(many=True, required=False)
     
-    
+
+class loginSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    password = serializers.CharField(write_only=True) 
