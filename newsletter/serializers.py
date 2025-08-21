@@ -8,7 +8,7 @@ class NewsletterListSerializer(serializers.ModelSerializer):
     keyword = serializers.CharField(source="keyword.name", read_only=True)
     
     class Meta:
-        model = NewsLetter
+        model = Newsletter
         fields = ['id', 'title', 'thumbnail', 'createdAt', 'isUserMade', 'keyword']
 
 class NewsletterListResponseSerializer(serializers.Serializer):

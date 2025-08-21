@@ -54,23 +54,22 @@ def updateReviewData(store: Store, reviewData: list):
         )
     Review.objects.bulk_create(createReview)
 
-def getReviewAnalysis(store_id: int, term: int):
+def createReviewAnalysis(store_id: int, term: int):
     try:
         store = Store.objects.get(pk=store_id)
-        # Store 모델에 카카오맵 ID를 저장하는 필드가 'kakao_place_id'라고 가정
-        if not store.kakao_place_id:
-            raise ValueError("가게에 kakao_place_id가 등록되어 있지 않습니다.")
+        if not store.kakaoPlaceId:
+            raise ValueError("가게에 kakaoPlaceId가 등록되어 있지 않습니다.")
     except (Store.DoesNotExist, ValueError) as e:
         print(f"서비스 처리 불가: {e}")
         return None # 가게가 없거나 kakao_id가 없으면 None 반환
 
-    # 2. 최신 리뷰를 위해 크롤러 실행 및 DB 업데이트
+    # 최신 리뷰를 위해 크롤러 실행 및 DB 업데이트
     # (주의: API 호출마다 크롤링이 실행되어 느릴 수 있음. 캐싱 전략 고려 필요)
-    scraped_reviews = getKakaoReview(store.kakao_place_id)
+    scraped_reviews = getKakaoReview(store.kakaoPlaceId)
     if scraped_reviews:
         updateReviewData(store, scraped_reviews)
 
-    # 3. 'term' 값에 따라 리뷰 필터링
+    # 'term' 값에 따라 리뷰 필터링
     end_date = timezone.now()
     reviews_qs = store.reviews.all()
     
@@ -84,7 +83,7 @@ def getReviewAnalysis(store_id: int, term: int):
     if not reviews_qs.exists():
         return {"message": "해당 기간에 분석할 리뷰가 없습니다."}
 
-    # 4. 필터링된 리뷰로 LLM 페이로드 생성 (버그 수정)
+    # 필터링된 리뷰로 LLM 페이로드 생성 (버그 수정)
     review_payload = [
         {
             "reviewContent": r.reviewContent,
@@ -94,7 +93,7 @@ def getReviewAnalysis(store_id: int, term: int):
     ]
     payload = {"storeName": store.name, "reviews": review_payload}
 
-    # 5. LLM 분석 실행
+    # LLM 분석 실행
     try:
         # review_analysis는 LLM 호출 후 API 명세서의 data 부분과 동일한 dict를 반환한다고 가정
         analysis_result = review_analysis(payload) 
