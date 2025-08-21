@@ -35,7 +35,7 @@ class signupView(APIView):
             
             response = Response({
                 'message': '회원가입 성공',
-                'profileId': result['profile'].id,
+                'profileId': result['profile'].user_id,
             }, status=status.HTTP_201_CREATED)
             
             # secure=True로 일관성 유지 (HTTPS 환경에서만 쿠키 전송)
@@ -63,6 +63,8 @@ class storeView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
+        
+        user = request.user.profile
         req = storeSerializerReq(data = request.data)
         req.is_valid(raise_exception=True)
         
@@ -71,7 +73,7 @@ class storeView(APIView):
             result = storeCreate(
                 name=req.validated_data["name"],
                 address=req.validated_data["address"],
-                user=request.user.profile 
+                user= user
             )
             
             return Response({

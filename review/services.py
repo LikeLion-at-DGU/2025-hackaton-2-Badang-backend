@@ -33,6 +33,9 @@ def getStoreId(storeName, storeAddress):
             "placeLongitude": first_document["x"],
         }
     
+    return {}
+
+
 def updateReviewData(store: Store, reviewData: list):
     createReview = []
     
