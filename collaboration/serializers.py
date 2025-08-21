@@ -19,7 +19,6 @@ class CollaborationSearchReq(serializers.Serializer):
     type = serializers.IntegerField(required=False)
     category = serializers.IntegerField(required=False)
     query = serializers.CharField(required=False, allow_blank=True, default="")
-    storeId = serializers.IntegerField()
     
 class CollaborationSearchRes(serializers.Serializer):
     store = StoreBrief()
@@ -35,7 +34,6 @@ class CollaborationSearchRes(serializers.Serializer):
 
 # 협업 신청시 필요한 DTO
 class CollaborationCreateReq(serializers.Serializer):
-    fromStoreId = serializers.IntegerField()
     toStoreId = serializers.IntegerField()
     initialMessage = serializers.CharField(allow_blank=True, required=False, default="")
 
@@ -59,22 +57,13 @@ class CollaborationDecisionResp(serializers.Serializer):
 #협업 요청받은 건 관련 DTO
 class IncomingItem(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    requestStore = StoreBrief()
+    requestStore = StoreBrief()  # StoreBrief를 필드로 사용
     initialMemo = serializers.CharField(allow_blank=True)
     
     def to_representation(self, obj: Collaborate):
-        partner = obj.requestStore
-
         return {
             "collaborateId": obj.id,
-            "resquestStore": {
-                "storeId": partner.id,
-                "storeName": partner.name,
-                "storeLatitude": partner.latitude,
-                "storeLongitude": partner.longitude,
-                "address": partner.address,
-            },
-            # 처음 신청 메시지
+            "requestStore": StoreBrief(obj.requestStore).data, 
             "initialMemo": obj.initialMessage or "",
         }
 
@@ -88,28 +77,15 @@ class OutgoingItem(serializers.Serializer):
     initialMemo = serializers.CharField(allow_blank=True)
     
     def to_representation(self, obj: Collaborate):
-        partner = obj.responseStore
-
         return {
             "collaborateId": obj.id,
-            "responseStore": {
-                "storeId": partner.id,
-                "storeName": partner.name,
-                "storeLatitude": partner.latitude,
-                "storeLongitude": partner.longitude,
-                "address": partner.address,
-            },
-            # 처음 신청 메시지
+            "responseStore": StoreBrief(obj.responseStore).data, 
             "initialMemo": obj.initialMessage or "",
         }
 
 
 
 #협업 중인 건 관련 DTO
-class ActiveListReq(serializers.Serializer):
-    storeId = serializers.IntegerField(required=False)
-    
-    
 class ActiveItem(serializers.Serializer):
     collaborateId = serializers.IntegerField()
     collaborateStore = StoreBrief()
@@ -145,7 +121,6 @@ class ActiveItem(serializers.Serializer):
 #협업 메모 수정
 class CollaborationMemoPatchReq(serializers.Serializer):
     collaborateId = serializers.IntegerField()
-    storeId = serializers.IntegerField()
     memo = serializers.CharField(allow_blank=True)
     
 
