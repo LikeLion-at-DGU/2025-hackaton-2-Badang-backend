@@ -54,7 +54,7 @@ def updateReviewData(store: Store, reviewData: list):
         )
     Review.objects.bulk_create(createReview)
 
-def getReviewAnalysis(storeId: int, term: int):
+def postReviewAnalysis(storeId: int, term: int):
     try:
         store = Store.objects.get(pk=storeId)
         # Store 모델에 카카오맵 ID를 저장하는 필드가 'kakao_place_id'라고 가정
