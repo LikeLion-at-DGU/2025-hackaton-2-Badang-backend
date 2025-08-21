@@ -77,55 +77,6 @@ class StoreViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         store = serializer.save()  
-        response = StoreDetailRegisterResponseSerializer(store)
+        response = StoreDetailRegisterResponseSerializer(store)        
         return ok(response.data, message="정보 등록완료", code=status.HTTP_200_OK)
     
-class LoginView(APIView):
-    # 완전 오픈
-    permission_classes = [AllowAny]
-    authentication_classes = []  # CSRF 등 세션 인증 비활성화
-
-    def post(self, request):
-        req = LoginRequestSerializer(data=request.data)
-        if not req.is_valid():
-            return Response({'ok': False, 'reason': 'invalidPayload', 'errors': req.errors},
-                            status=status.HTTP_200_OK)
-
-        loginId = req.validated_data['loginId']
-        inputPassword = req.validated_data['password']
-
-        user = getUserByLoginId(loginId)
-        if user is None:
-            res = LoginResultSerializer({'ok': False, 'reason': 'userNotFound'})
-            return Response(res.data, status=status.HTTP_200_OK)
-
-        # 비밀번호는 평문 비교 X → 해시 검증
-        if not check_password(inputPassword, user.password):
-            res = LoginResultSerializer({'ok': False, 'reason': 'wrongPassword'})
-            return Response(res.data, status=status.HTTP_200_OK)
-
-        profile = getProfileByUser(user)
-        if profile is None:
-            # 필요하면 자동 생성(선택)
-            profile = Profile.objects.create(
-                userId=user, profileName=user.username, profilePhoneNumber=''
-            )
-
-        res = LoginResultSerializer({
-            'ok': True,
-            'reason': '',
-            'userId': user.id,
-            'username': user.username,
-            'profileName': profile.profileName,
-            'profilePhoneNumber': profile.profilePhoneNumber
-        })
-        return Response(res.data, status=status.HTTP_200_OK)
-
-
-class MeView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []  # 완전 공개
-
-    def get(self, request):
-        # 지금은 권한 없음: 항상 anonymous 취급
-        return Response({'ok': True, 'isAuthenticated': False, 'user': None}, status=status.HTTP_200_OK)

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os, environ
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +50,16 @@ INSTALLED_APPS = [
     'trend',
     'collaboration',
     'common',
+    
+    
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    
 ]
 
 MIDDLEWARE = [
@@ -62,6 +73,8 @@ MIDDLEWARE = [
     
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'Badang.urls'
@@ -117,10 +130,12 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         #"rest_framework_simplejwt.authentication.JWTAuthentication",
         #나중 실제 배포시 켜두기
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         #"rest_framework.permissions.IsAuthenticatedOrReadOnly",
-        "rest_framework.permissions.AllowAny",
+        #"rest_framework.permissions.AllowAny",
+        'rest_framework.permissions.IsAuthenticated'
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -130,6 +145,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
+    #'JWT_AUTH_COOKIE_USE_CSRF':True,
+    'SESSION_LOGIN': False,
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "ROTATE_REFRESH_TOKENS": False,
 }
 
 SPECTACULAR_SETTINGS = {"TITLE": "Badang API", "VERSION": "1.0.0"}
@@ -175,3 +205,7 @@ CORS_ALLOWED_ORIGINS = [
 
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
+
+SITE_ID = 1
+
+ACCOUNT_AUTHENTICATION_METHOD = "username"
