@@ -60,8 +60,11 @@ class NewsletterViewSet(viewsets.ViewSet):
         
         # 리스폰스 반환
         dataSerializer = NewsletterListResponseSerializer(newsletters, many=True)
-        return Response({
-            "message": "뉴스레터 목록 조회 성공"
+        
+        out = {
+            "message": "뉴스레터 목록 조회 성공",
             "data": dataSerializer.data,
             "hasMore": hasMore
-        })
+        }
+        return Response(out, status=status.HTTP_200_OK )
+        
