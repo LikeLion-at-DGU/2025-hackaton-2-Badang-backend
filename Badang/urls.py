@@ -35,6 +35,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('main/', include('main.urls')),
+    path('newsletter/', include('newsletter.urls')),
     path('review/', include('review.urls')),
     path('trend/', include('trend.urls')),
     path('collaboration/', include('collaboration.urls')),

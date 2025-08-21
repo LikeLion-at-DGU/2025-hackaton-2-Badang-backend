@@ -4,14 +4,16 @@ from .getnewsletter import createNewsletterAI
 from trend.models import Keyword
 from review.models import ReviewAnalysis
 
-from django import Request
 from django.forms.models import model_to_dict
 
 def createNewsletter(storeId: int) -> Newsletter:
     try:
         store = Store.objects.get(pk=storeId)
-        reviewAnalysis = ReviewAnalysis.objects.get(store=store)
-        keyword = Keyword.objects.filter(store=store).first()  # Assuming Keyword is a model related to Store
+        reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
+        keyword = Keyword.objects.latest('keywordCreatedAt') # <-- 이 부분이 중요
+
+        if not keyword:
+            raise Exception("해당 가게에 연결된 키워드가 없습니다.")  # Assuming Keyword is a model related to Store
     
     except Store.DoesNotExist:
         raise ValueError("가게를 찾을 수 없습니다.")
@@ -25,15 +27,18 @@ def createNewsletter(storeId: int) -> Newsletter:
     keywordData = {"keyword": keyword.keywordName}
 
     createNewNewsletter = createNewsletterAI(reviewData, keywordData, storeData)
-
+    user = store.user
     newNewsletter = Newsletter.objects.create(
+        user=user,
         store=store,
-        reviewAnalysis=reviewAnalysis,
-        keyword=keyword,
+        review_analysis=reviewAnalysis,
+        isUserMade=False,
         title=createNewNewsletter.get("title"),
-        content=createNewNewsletter.get("content")
+        firstContent=createNewNewsletter.get("firstContent"),
+        secondContent=createNewNewsletter.get("secondContent")
     )
-
+    newNewsletter.keywords.add(keyword)
+        
     return newNewsletter
 
 def getNewsletter(newsletterId: int) -> Newsletter:

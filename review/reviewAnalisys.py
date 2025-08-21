@@ -28,8 +28,10 @@ def review_analysis(review_payload: dict) -> dict:
             - Delight (있으면 감동: 특별 서비스, 이벤트 등)
 
         **출력 형식** (각 항목 3~4문장, 친절하고 제안 중심 어조로 전문 용어 사용은 자제)
+        
+        You MUST return only JSON.
 
-        - ✅ 좋았어요 (장점)            
+        - ✅ 좋았어요 (장점)          
             리뷰에서 긍정적으로 언급된 부분을 정리합니다.
             ex) “김치전이 술안주로 잘 어울린다는 점이 손님들께 호평을 받았습니다.”
             
@@ -49,8 +51,9 @@ def review_analysis(review_payload: dict) -> dict:
             사장님의 운영 철학을 존중하며, 강제 조언 대신 **친절한 제안**으로 작성합니다.
             ex) “좌석 안내나 혼잡 시간대 안내를 추가해주시면 손님들이 조금 더 편하게 느끼실 수 있을 것 같습니다.”
 
-            출력은 반드시 아래 JSON 형식을 따르세요. 
+            출력은 반드시 후술하는 JSON 형식을 따르세요. 
             JSON 이외의 텍스트를 절대 포함하지 마세요.
+            You MUST return only JSON.
 
             {
             "data": {
@@ -67,15 +70,80 @@ def review_analysis(review_payload: dict) -> dict:
                 "analysisSolution": "해결 방안 제안"
             }
             }
+            
+            분석할 수 없는 부분은 "알 수 없음"으로 처리합니다.
     """
 
     user = {
         "role": "user",
-        "content": f"다음 리뷰 데이터를 분석해줘. 반드시 JSON만 반환해.\n\n{review_payload}"
+        "content": f"다음 리뷰 데이터를 분석해줘. 반드시 반드시 무조건 JSON만 반환해.\n\n{review_payload}"
     }
+    
+    llm_response = ""
+    cleaned_response = ""
 
-    # run_llm 내부에서 OpenAI API를 호출한다고 가정
-    # 가능하다면 response_format="json" 옵션을 추가
-    text = run_llm(system, user)
+    try:
+        # 이 블록 안에 모든 위험한 코드를 배치
+        llm_response = run_llm(system, user)
+        if not isinstance(llm_response, str):
+            llm_response = str(llm_response)
 
-    return json.loads(text)
+        cleaned_response = llm_response.strip()
+
+        if cleaned_response.startswith('```json'):
+            cleaned_response = cleaned_response[len('```json'):]
+        if cleaned_response.endswith('```'):
+            cleaned_response = cleaned_response[:-len('```')]
+        
+        parsed_json = json.loads(cleaned_response)
+        
+        if "data" in parsed_json and isinstance(parsed_json["data"], dict):
+            data_dict = parsed_json["data"]
+            # get() 메서드를 사용하여 안전하게 키 접근
+            analysis_data = {
+                "storeName": data_dict.get("storeName", "알 수 없음"),
+                "goodPoint": data_dict.get("goodPoint", "리뷰 분석에 실패했습니다. (응답 형식 오류)"),
+                "badPoint": data_dict.get("badPoint", "리뷰 분석에 실패했습니다. (응답 형식 오류)"),
+                "percentage": data_dict.get("percentage", {"goodPercentage": 0, "middlePercentage": 0, "badPercentage": 0}),
+                "analysisKeyword": data_dict.get("analysisKeyword", "리뷰 분석 실패"),
+                "analysisProblem": data_dict.get("analysisProblem", "리뷰 분석 실패"),
+                "analysisSolution": data_dict.get("analysisSolution", "리뷰 분석 실패")
+            }
+            return analysis_data
+
+        raise ValueError("LLM 응답이 올바른 형식이 아닙니다.")
+        
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        print(f"JSON 파싱 또는 키 에러: {e}")
+        # 이제 cleaned_response 변수가 정의되지 않았다는 오류는 발생하지 않습니다.
+        print(f"원본 LLM 응답: {llm_response}")
+        # ... (이전의 대체 딕셔너리 반환 로직) ...
+        return {
+            "storeName": review_payload.get('storeName', '알 수 없음'),
+            "goodPoint": "리뷰 분석에 실패했습니다. (응답 형식 오류)",
+            "badPoint": "리뷰 분석에 실패했습니다. (응답 형식 오류)",
+            "percentage": {
+                "goodPercentage": 0,
+                "middlePercentage": 0,
+                "badPercentage": 0
+            },
+            "analysisKeyword": "리뷰 분석 실패",
+            "analysisProblem": "리뷰 분석 실패",
+            "analysisSolution": "리뷰 분석 실패"
+        }
+    except Exception as e:
+        print(f"예상치 못한 오류: {e}")
+        print(f"원본 LLM 응답: {llm_response}")
+        return {
+            "storeName": review_payload.get('storeName', '알 수 없음'),
+            "goodPoint": "예상치 못한 오류 발생",
+            "badPoint": "예상치 못한 오류 발생",
+            "percentage": {
+                "goodPercentage": 0,
+                "middlePercentage": 0,
+                "badPercentage": 0
+            },
+            "analysisKeyword": "리뷰 분석 실패",
+            "analysisProblem": "리뷰 분석 실패",
+            "analysisSolution": "리뷰 분석 실패"
+        }

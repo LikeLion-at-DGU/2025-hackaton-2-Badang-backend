@@ -1,7 +1,7 @@
 import requests, environ, json
 from datetime import timedelta
 from django.utils import timezone
-from .models import Review, Reviewer
+from .models import Review, Reviewer, ReviewAnalysis
 from main.models import Store
 from .reviewAnalisys import review_analysis
 from common.services.llm import run_llm
@@ -96,9 +96,44 @@ def postReviewAnalysis(storeId: int, term: int):
 
     # LLM 분석 실행
     try:
-        # review_analysis는 LLM 호출 후 API 명세서의 data 부분과 동일한 dict를 반환한다고 가정
         analysisResult = review_analysis(payload) 
-        return analysisResult["data"]
+        
+        # 'analysisKeyword'가 '리뷰 분석 실패'와 같은 기본값인지 확인하여
+        # 성공 여부를 판단하고 DB에 저장
+        is_success = analysisResult.get('analysisKeyword') != '리뷰 분석 실패'
+
+        if is_success:
+            # get() 메서드를 사용하여 안전하게 키에 접근
+            percentage_data = analysisResult.get('percentage', {})
+            
+            # 성공 시에만 DB에 저장하는 로직 실행
+            review_analysis_obj, created = ReviewAnalysis.objects.get_or_create(
+                storeId=store,
+                defaults={
+                    'analysisKeyword': analysisResult.get('analysisKeyword', '분석 실패'),
+                    'goodPoint': analysisResult.get('goodPoint', '분석 실패'),
+                    'badPoint': analysisResult.get('badPoint', '분석 실패'),
+                    'goodPercentage': percentage_data.get('goodPercentage', 0),
+                    'badPercentage': percentage_data.get('badPercentage', 0),
+                    'middlePercentage': percentage_data.get('middlePercentage', 0),
+                }
+            )
+
+            if not created:
+                # 이미 객체가 있다면 .get()을 사용하여 업데이트
+                review_analysis_obj.analysisKeyword = analysisResult.get('analysisKeyword', '분석 실패')
+                review_analysis_obj.goodPoint = analysisResult.get('goodPoint', '분석 실패')
+                review_analysis_obj.badPoint = analysisResult.get('badPoint', '분석 실패')
+                review_analysis_obj.goodPercentage = percentage_data.get('goodPercentage', 0)
+                review_analysis_obj.badPercentage = percentage_data.get('badPercentage', 0)
+                review_analysis_obj.middlePercentage = percentage_data.get('middlePercentage', 0)
+                review_analysis_obj.save()
+
+            return {"message": "리뷰 분석 및 저장 성공", "data": analysisResult}
+        else:
+            # 분석에 실패한 경우
+            return {"message": "리뷰 분석 중 오류가 발생했습니다. LLM 응답 형식에 문제가 있습니다.", "data": analysisResult}
+
     except Exception as e:
         print(f"리뷰 분석 실패: {e}")
-        return {"message": "리뷰 분석 중 오류가 발생했습니다."}
+        return {"message": "리뷰 분석 중 오류가 발생했습니다.", "error": str(e)}

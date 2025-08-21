@@ -47,22 +47,60 @@ def createNewsletterAI(reviewAnalysisPayload: dict, keywordPayload: str, storePa
         {
             "data":{
                 "title": "제목",
-                "thumbnail": "썸네일 이미지 URL",
-                "greeting": "인사말",
-                "keyword": "키워드",
-                "keywordDescription": "키워드 설명",
-                "insight": "인사이트",
-                "cooperation": "협업 아이디어",
-                "action": "추천 액션"
+                "firstContent": "인사말, 키워드 및 설명, 키워드와 가게 관련 정보 설명",
+                "secondContent": "인사이트, 협업 아이디어, 추천 액션"
             }
         }
     """
-    
+    payload = {
+        "reviewAnalysis": reviewAnalysisPayload,
+        "storeInfo": storePayload,
+        "keywordInfo": keywordPayload
+    }
+
     user = {
         "role": "user",
-        "content": f"다음 데이터를 바탕으로 소상공인 주간 보고서를 작성해줘. 반드시 JSON만 반환해.\n\n{json.dumps(newsletterPayload, ensure_ascii=False)}"
+        "content": f"다음 데이터를 바탕으로 소상공인 주간 보고서를 작성해줘. 반드시 JSON만 반환해.\n\n{json.dumps(payload, ensure_ascii=False)}"
     }
     
-    text = run_llm(system, user)
-    
-    return json.loads(text)
+    llm_response = ""
+    try:
+        llm_response = run_llm(system, user)
+        cleaned_response = llm_response.strip().replace("```json", "").replace("```", "")
+        parsed_json = json.loads(cleaned_response)
+        
+        # --- 이 부분을 수정하세요! ---
+        # "data" 키에서 실제 내용이 담긴 딕셔너리를 가져옵니다.
+        newsletter_data = parsed_json.get("data", {})
+        
+        # "data" 딕셔너리 내의 키를 사용하여 값을 가져옵니다.
+        title = newsletter_data.get("title", "보고서 제목이 생성되지 않았습니다.")
+        firstContent = newsletter_data.get("firstContent", "보고서 생성 중 오류가 발생했습니다. 다시 시도해 주세요.")
+        secondContent = newsletter_data.get("secondContent", "내용이 없습니다.")
+        
+        # models.py에 thirdContent가 없으므로 이 부분은 삭제하거나, 
+        # thirdContent가 필요하면 모델을 수정해야 합니다.
+        
+        # 모든 필수 필드를 포함하는 딕셔너리 반환
+        return {
+            "title": title,
+            "firstContent": firstContent,
+            "secondContent": secondContent
+        }
+
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        print(f"JSON 파싱 실패: {e}")
+        print(f"원본 LLM 응답: {llm_response}")
+        # 실패 시 모든 필드에 '내용이 없습니다'를 포함하는 딕셔너리 반환
+        return {
+            "title": "보고서 제목이 생성되지 않았습니다.",
+            "firstContent": "보고서 생성 중 오류가 발생했습니다. 다시 시도해 주세요.",
+            "secondContent": "내용이 없습니다."
+        }
+    except Exception as e:
+        print(f"예상치 못한 오류 발생: {e}")
+        return {
+            "title": "보고서 제목 생성 오류",
+            "firstContent": "예상치 못한 오류가 발생했습니다.",
+            "secondContent": "내용이 없습니다."
+        }
