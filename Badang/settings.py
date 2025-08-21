@@ -167,7 +167,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOW_ORIGINS = [
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8000",
     #프론트엔드 배포 주소
