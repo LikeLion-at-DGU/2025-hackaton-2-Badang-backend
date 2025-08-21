@@ -1,82 +1,123 @@
-from django.shortcuts import render
-from rest_framework import viewsets, mixins
-from django.db import transaction
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
 from .models import *
 from .serializers import *
 from rest_framework.views import APIView
-
-from django.shortcuts import get_object_or_404, get_list_or_404
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from rest_framework import status
 
-import re
-
-from .permissions import IsOwnerReadOnly
-from rest_framework.decorators import action
+from .services import *
 
 
-# Create your views here.
-
-# responseDto 반환 형태
-def ok(data, message="성공", code=status.HTTP_200_OK):
-    return Response({"message": message, "statusCode": code, "data": data}, status=code)
-
-def bad(message="잘못된 요청", code=status.HTTP_400_BAD_REQUEST, errors=None):
-    return Response({"message": message, "statusCode": code, "data": errors or []}, status=code)
+class DomainError(Exception):
+    pass
 
 
-class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
-
+class signupView(APIView):
+    permission_classes= [AllowAny]
     
-    # 테스트 기간: 전부 오픈하려면
-    permission_classes = [AllowAny]          # ✅ 리스트(또는 튜플)로, 클래스 자체를 넣는다
-
-    # (나중에 잠글 때)
-    # def get_permissions(self):
-    #     if self.action == "create":        # 회원가입만 오픈
-    #         return [AllowAny()]
-    #     return [IsAuthenticated()]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        profile = serializer.save()  # create()에서 User+Profile 동시 생성
-        return ok({"userId": profile.pk}, message="프로필등록완료", code=status.HTTP_201_CREATED)
-
-
-
-class StoreViewSet(viewsets.ModelViewSet):
-    
-    queryset = Store.objects.all().select_related('user', 'type', 'category', 'visitor').prefetch_related('menus')
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return StoreRegisterRequestSerializer            
-        if self.action in ['partial_update', 'update']:
-            return StoreDetailRegisterRequestSerializer      
+    def post(self, request):
         
-        #post,patch 아니면 응답용
-        return StoreDetailRegisterResponseSerializer      
-
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        store = serializer.save() 
+        req = signupSerializer(data = request.data)
+        req.is_valid(raise_exception=True)
         
-        return ok({"id": store.id, "name": store.name}, message="가게 등록 완료", code=status.HTTP_201_CREATED)
-
-    
-    def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
         
-        store = serializer.save()  
-        response = StoreDetailRegisterResponseSerializer(store)        
-        return ok(response.data, message="정보 등록완료", code=status.HTTP_200_OK)
+        try:
+            # 회원가입 처리
+            result = profileCreate(
+                username=req.validated_data["id"],
+                password=req.validated_data["password"],
+                name=req.validated_data["name"],
+                phoneNumber=req.validated_data["phoneNumber"]
+            )
+            
+            # 토큰을 쿠키에 설정 (settings의 JWT_AUTH_HTTPONLY=True와 맞춤)
+            response = Response({
+                'message': '회원가입 성공',
+                'profileId': result['profile'].id,
+            }, status=status.HTTP_201_CREATED)
+            
+            # HTTP-only 쿠키로 토큰 설정
+            response.set_cookie(
+                'access_token', 
+                result['tokens']['access'],
+                httponly=True,
+                secure=True,  # HTTPS에서만
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'refresh_token', 
+                result['tokens']['refresh'],
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+            
+            return response
+            
+        except DomainError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class storeView(APIView):
+    permission_classes = [IsAuthenticated]
     
+    def post(self, request):
+        
+        req = storeSerializerReq(data = request.data)
+        req.is_valid(raise_exception=True)
+        
+        try:
+            result = storeCreate(
+                name=req.validated_data["name"],
+                address=req.validated_data["address"],
+                user=request.user 
+            )
+            
+            return Response({
+                "message": "가게 정보 등록 완료",
+                "statusCode": "201",
+                "data": {
+                    "id": result.id,
+                    "name": result.name,
+                    "address": result.address
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    
+    def patch(self, request):
+        
+        req = storeUpdateSerializerReq(data = request.data)
+        req.is_valid(raise_exception=True)
+        
+        
+        try:
+            result = storeUpdate(
+                storeId = req.validated_data["id"],
+                user=request.user,
+                type = req.validated_data["type"],
+                category = req.validated_data["category"],
+                visitor= req.validated_data["visitor"],
+                isWillingCollaborate=req.validated_data["isWillingCollaborate"],
+                storeContent= req.validated_data["storeContent"],
+                menus=req.validated_data.get("menu", [])
+            )
+            
+            return Response({
+                "message": "상세정보 등록 완료",
+                "statusCode": "200",
+                "data": {
+                    "id": result.id,
+                    "name": result.name
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
