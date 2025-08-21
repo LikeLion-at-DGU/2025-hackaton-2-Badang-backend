@@ -30,11 +30,13 @@ class CollaborationSearchListView(APIView):
         except DomainError as e:
             return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
+        stores = CollaborationSearchRes(res, many=True)
+        
         out = {
             "status":200,
             "message":"가까운 8개 가게 반환 완료",
             "data":{
-                "store":res
+                "store":stores.data
             }
         }
         return Response(out, status=status.HTTP_200_OK)
