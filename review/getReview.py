@@ -9,12 +9,12 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
-def getKakaoReview(kakao_place_id: str) -> list:
+def getKakaoReview(kakaoPlaceId: str) -> list:
     """
     주어진 카카오맵 ID의 리뷰를 스크래핑하여 딕셔너리 리스트로 반환합니다.
     [{"reviewer_name": "...", "content": "...", "rate": 5, "date": "2025.08.20."}, ...]
     """
-    url = f"https://place.map.kakao.com/{kakao_place_id}"
+    url = f"https://place.map.kakao.com/{kakaoPlaceId}"
     
     options = webdriver.ChromeOptions()
     options.add_argument("headless")

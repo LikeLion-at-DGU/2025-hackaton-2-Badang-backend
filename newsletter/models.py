@@ -5,9 +5,9 @@ from trend.models import Keyword
 
 # Create your models here.
 class Newsletter(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="newsletters")
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="newsletters")
-    review_analysis = models.ForeignKey(ReviewAnalysis, on_delete=models.CASCADE, related_name="newsletters")
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="newsletterItem")
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="newsletterItem")
+    review_analysis = models.ForeignKey(ReviewAnalysis, on_delete=models.CASCADE, related_name="newsletterItem")
     keywords = models.ManyToManyField(Keyword)
     
     title = models.CharField(max_length=100)

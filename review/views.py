@@ -33,7 +33,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # OpenAI 활용 리뷰 분석 생성 -> 시리얼라이저로 옮길 예정
-        analysisData = getReviewAnalysis(storeId, term)
+        analysisData = postReviewAnalysis(storeId, term)
 
         # 에러 파싱
         if analysisData is None:
