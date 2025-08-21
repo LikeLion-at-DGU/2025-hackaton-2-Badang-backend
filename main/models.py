@@ -52,8 +52,9 @@ class Store(models.Model):
     address = models.TextField()
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
+    storeNumber = models.TextField(null=True, blank=True)
 
-    kakao_place_id = models.BigIntegerField(blank=True, null=True, unique=True)
+    kakaoPlaceId = models.BigIntegerField(blank=True, null=True, unique=True)
 
     type = models.ForeignKey(Type, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='stores', blank=True, null=True)
