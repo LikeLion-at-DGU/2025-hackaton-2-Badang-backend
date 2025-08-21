@@ -27,14 +27,19 @@ class MenuSerializer(serializers.Serializer):
         return v
     
     
+class VisitorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Visitor
+        fields = ['gender', 'age_group', 'is_foreign']
+
 class storeUpdateSerializerReq(serializers.Serializer):
-    type = serializers.IntegerField()
-    category = serializers.IntegerField()
-    visitor = serializers.IntegerField()
-    isWillingCollaborate = serializers.CharField()
-    storeContent = serializers.CharField(required=False, allow_blank=True, default="")
+
+    type = serializers.PrimaryKeyRelatedField(queryset=Type.objects.all(), required=False)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=False)
+    visitor = VisitorSerializer(required=False)
+    isWillingCollaborate = serializers.BooleanField(required=False)
+    storeContent = serializers.CharField(required=False, allow_blank=True)
     menu = MenuSerializer(many=True, required=False)
-    
 
 class loginSerializer(serializers.Serializer):
     id = serializers.CharField()

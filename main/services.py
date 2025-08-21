@@ -64,44 +64,36 @@ def storeCreate(name: str = "", address: str = ""):
     except Exception as e:
         raise DomainError(f"매장 생성 실패: {str(e)}")
 
-def storeUpdate(storeId: int, user=None,type: int = None, category: int = None, 
-                visitor: int = None, isWillingCollaborate: str = "", 
-                storeContent: str = "", menus: list = None):
+def storeUpdate(store:Store, **data):
     
     try:
-        store = get_object_or_404(Store, id=storeId)
-        
-        if store.user != user:
-            raise DomainError("본인의 매장만 수정할 수 있습니다.")
-        
-        
-        if type is not None:
-            store.type = type
-        if category is not None:
-            store.category = category
-        if visitor is not None:
-            store.visitor = visitor
-        if isWillingCollaborate:
-            store.isWillingCollaborate = isWillingCollaborate
-        if storeContent:
-            store.storeContent = storeContent
+        # visitor 데이터가 딕셔너리 형태로 들어오면 처리
+        if 'visitor' in data and data.get('visitor') is not None:
+            visitor_data = data.pop('visitor')
+            # visitor_data와 일치하는 객체를 찾거나, 없으면 새로 생성합니다.
+            visitor_obj, created = Visitor.objects.get_or_create(**visitor_data)
+            store.visitor = visitor_obj
+    
+            
+        if 'type' in data and data.get('type') is not None:
+            store.type = data['type']
+        if 'category' in data and data.get('category') is not None:
+            store.category = data['category']
+        if 'isWillingCollaborate' in data and data.get('isWillingCollaborate') is not None:
+            store.isWillingCollaborate = data['isWillingCollaborate']
+        if 'storeContent' in data:
+            store.storeContent = data['storeContent']
             
         store.save()
         
         
-        if menus is not None:
-            # 기존 메뉴 삭제
+        if 'menu' in data and data.get('menu') is not None:
             store.menus.all().delete()
-            
-            # 새 메뉴 추가
-            for menu_data in menus:
-                Menu.objects.create(
-                    store=store,
-                    name=menu_data['name'],
-                    price=menu_data['price']
-                )
+            for menu_data in data['menu']:
+                Menu.objects.create(store=store, **menu_data)
         
         return store
-        
+    
     except Exception as e:
-        raise DomainError(f"매장 업데이트 실패: {str(e)}")
+        
+        raise DomainError(f"매장 정보 업데이트 중 오류가 발생했습니다: {str(e)}")
