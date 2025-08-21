@@ -25,9 +25,9 @@ def profileCreate(username: str = "", password: str = "", name: str = "", phoneN
             
             # Profile 생성
             profile = Profile.objects.create(
-                User=user,
+                user=user,
                 profileName=name,
-                profileNumber=phoneNumber
+                profilePhoneNumber=phoneNumber
             )
             
             # JWT 토큰 생성
@@ -45,12 +45,15 @@ def profileCreate(username: str = "", password: str = "", name: str = "", phoneN
     except Exception as e:
         raise DomainError(f"회원가입 실패: {str(e)}")
 
-def storeCreate(name: str = "", address: str = ""):
+def storeCreate(name: str, address: str,user):
     
     try:
+        
+        profile = Profile.objects.get(user=user)
         res = getStoreId(name, address)
         
         store = Store.objects.create(
+            user=profile,
             name=name,
             address=address,
             kakaoPlaceId=res.get("id"),
