@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, get_list_or_404
+from django.core.exceptions import PermissionDenied
 
 from common.serializers import *
 from main.models import *
@@ -8,6 +9,7 @@ from .models import *
 import math
 from .services import DomainError
 from typing import Optional
+
 
 # 가까운 거리 정렬 위한 계산용
 def _haversine_km(lat1, lon1, lat2, lon2) -> float:
@@ -23,25 +25,18 @@ def _haversine_km(lat1, lon1, lat2, lon2) -> float:
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# #가게 정보 반환 (재사용)
-# def store_detail_dict(store) -> dict:
-#     return {
-#         "storeId": store.id,
-#         "name": store.name,
-#         "latitude": store.latitude,
-#         "longitude": store.longitude,
-#         "address": store.address,
-#     }
 
 #협업중인 가게 목록 반환
-def getActiveCollaboration(storeId : int):
+def getActiveCollaboration(user):
+    
+    me = user.stores.first()
     
     req_qs = (Collaborate.objects
-              .filter(requestStore_id=storeId, isAccepted=Collaborate.Status.ACCEPTED)
+              .filter(requestStore_id=me.id, isAccepted=Collaborate.Status.ACCEPTED)
               .select_related("requestStore", "responseStore"))
 
     res_qs = (Collaborate.objects
-              .filter(responseStore_id=storeId, isAccepted=Collaborate.Status.ACCEPTED)
+              .filter(responseStore_id=me.id, isAccepted=Collaborate.Status.ACCEPTED)
               .select_related("requestStore", "responseStore"))
 
     rows = list(req_qs) + list(res_qs)
@@ -50,39 +45,48 @@ def getActiveCollaboration(storeId : int):
     return rows
 
 # 내가 협업을 '요청한' 목록 (요청자 = 나), 보통 대기중만
-def getRequestCollaboration(storeId: int):
+def getRequestCollaboration(user):
+    
+    me = user.stores.first()
+    
     qs = (
         Collaborate.objects
-        .filter(requestStore_id=storeId, isAccepted=Collaborate.Status.PENDING) 
+        .filter(requestStore_id=me.id, isAccepted=Collaborate.Status.PENDING) 
         .select_related("requestStore", "responseStore")                           
         .order_by("-createdAt")                                                   
     )
     return list(qs)
 
 # 내가 협업을 '요청받은' 목록 (응답자 = 나), 보통 대기중만
-def getResponseCollaboration(storeId: int):
+def getResponseCollaboration(user):
+    
+    me = user.stores.first()
+    
     qs = (
         Collaborate.objects
-        .filter(responseStore_id=storeId, isAccepted=Collaborate.Status.PENDING)  
+        .filter(responseStore_id=me.id, isAccepted=Collaborate.Status.PENDING)  
         .select_related("requestStore", "responseStore")                           
         .order_by("-createdAt")                                                   
     )
     return list(qs)
 
-def getCollaborationSearch(storeId:int, 
+#협업 가능한 가게 8개 반환
+def getCollaborationSearch(user,
                             type_: Optional[int] = None,
                             category_: Optional[int] = None,
                             query:str=""):
     
-    try:
-        me = Store.objects.only("latitude", "longitude").get(id=storeId)
-    except Store.DoesNotExist:
-        raise DomainError("유효하지 않은 가게 ID입니다.")
+    me = user.stores.first()
     
+    if not me:
+        # 소유한 가게가 없는 경우
+        raise DomainError("소유한 가게 정보가 없습니다.")
+
     # 후보 골라내기 (자기 자신 제외 + 협업 가능만)
     qs = (Store.objects
         .filter(isWillingCollaborate=True)
-        .exclude(id=storeId))
+        .exclude(id=me.id)) 
+    
     
     if type_ is not None:
         qs = qs.filter(type=type_)

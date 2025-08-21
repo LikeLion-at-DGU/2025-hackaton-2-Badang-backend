@@ -54,9 +54,10 @@ def updateReviewData(store: Store, reviewData: list):
         )
     Review.objects.bulk_create(createReview)
 
-def createReviewAnalysis(store_id: int, term: int):
+def postReviewAnalysis(storeId: int, term: int):
     try:
-        store = Store.objects.get(pk=store_id)
+        store = Store.objects.get(pk=storeId)
+        # Store 모델에 카카오맵 ID를 저장하는 필드가 'kakao_place_id'라고 가정
         if not store.kakaoPlaceId:
             raise ValueError("가게에 kakaoPlaceId가 등록되어 있지 않습니다.")
     except (Store.DoesNotExist, ValueError) as e:
@@ -65,20 +66,20 @@ def createReviewAnalysis(store_id: int, term: int):
 
     # 최신 리뷰를 위해 크롤러 실행 및 DB 업데이트
     # (주의: API 호출마다 크롤링이 실행되어 느릴 수 있음. 캐싱 전략 고려 필요)
-    scraped_reviews = getKakaoReview(store.kakaoPlaceId)
-    if scraped_reviews:
-        updateReviewData(store, scraped_reviews)
+    scrapedReviews = getKakaoReview(store.kakaoPlaceId)
+    if scrapedReviews:
+        updateReviewData(store, scrapedReviews)
 
     # 'term' 값에 따라 리뷰 필터링
-    end_date = timezone.now()
+    endDate = timezone.now()
     reviews_qs = store.reviews.all()
     
     if term == 1: # 한 달
-        start_date = end_date - timedelta(days=30)
-        reviews_qs = reviews_qs.filter(reviewDate__range=[start_date, end_date])
+        startDate = endDate - timedelta(days=30)
+        reviews_qs = reviews_qs.filter(reviewDate__range=[startDate, endDate])
     elif term == 2: # 일주일
-        start_date = end_date - timedelta(days=7)
-        reviews_qs = reviews_qs.filter(reviewDate__range=[start_date, end_date])
+        startDate = endDate - timedelta(days=7)
+        reviews_qs = reviews_qs.filter(reviewDate__range=[startDate, endDate])
     
     if not reviews_qs.exists():
         return {"message": "해당 기간에 분석할 리뷰가 없습니다."}
@@ -96,8 +97,8 @@ def createReviewAnalysis(store_id: int, term: int):
     # LLM 분석 실행
     try:
         # review_analysis는 LLM 호출 후 API 명세서의 data 부분과 동일한 dict를 반환한다고 가정
-        analysis_result = review_analysis(payload) 
-        return analysis_result["data"]
+        analysisResult = review_analysis(payload) 
+        return analysisResult["data"]
     except Exception as e:
         print(f"리뷰 분석 실패: {e}")
         return {"message": "리뷰 분석 중 오류가 발생했습니다."}

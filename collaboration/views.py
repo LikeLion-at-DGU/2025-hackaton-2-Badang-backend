@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -15,6 +15,9 @@ from .selectors import *
 # Create your views here.
 
 class CollaborationSearchListView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    
     def post(self, request):
         
         req = CollaborationSearchReq(data=request.data)
@@ -23,10 +26,11 @@ class CollaborationSearchListView(APIView):
         type = req.validated_data["type"]
         category = req.validated_data["category"]
         query = req.validated_data["query"]
-        storeId = req.validated_data["storeId"]
+        
+        user = request.user.profile
         
         try:
-            res = getCollaborationSearch(storeId, type, category, query)
+            res = getCollaborationSearch(user, type, category, query)
         except DomainError as e:
             return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -42,24 +46,25 @@ class CollaborationSearchListView(APIView):
         return Response(out, status=status.HTTP_200_OK)
         
 class CollaborationPostView(APIView):
+    permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        # 1) 입력 검증
+        
         req = CollaborationCreateReq(data=request.data)
         req.is_valid(raise_exception=True)
+        
+        user = request.user.profile
 
-        # 2) 컨텍스트에서 신청자 가게 ID 가져옴
-        fromStoreId = req.validated_data["fromStoreId"]
         toStoreId = req.validated_data["toStoreId"]
         msg = req.validated_data.get("initialMessage", "")
 
-        # 3) 서비스 호출(쓰기/도메인 로직)
+        
         try:
-            collab = createCollaboration(fromStoreId, toStoreId, msg)
+            collab = createCollaboration(user, toStoreId, msg)
         except DomainError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 4) 응답 직렬화(응답 스펙 고정)
+        
         
         out = {
             "status": 201,
@@ -71,18 +76,21 @@ class CollaborationPostView(APIView):
 
 
 class CollaborationUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def patch(self, request):
         
         req = CollaborationMemoPatchReq(data=request.data)
         req.is_valid(raise_exception=True)
         
+        user = request.user.profile
+        
         collaborateId = req.validated_data["collaborateId"]
-        storeId = req.validated_data["storeId"]
         msg = req.validated_data["memo"]
         
         
         try:
-            memo = updateCollaborationMsg(collaborateId, storeId, msg)
+            memo = updateCollaborationMsg(collaborateId, user, msg)
         except DomainError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,10 +104,14 @@ class CollaborationUpdateView(APIView):
         return Response(out, status=status.HTTP_200_OK )
 
 class CollaborationDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def delete(self, request, collaborateId: int):
         
+        user = request.user.profile
+        
         collaborateId = int(collaborateId)
-        msg = deleteCollaboration(collaborateId)
+        msg = deleteCollaboration(collaborateId,user)
         
         out = {
             "status": 200,
@@ -109,17 +121,15 @@ class CollaborationDeleteView(APIView):
         return Response(out, status=status.HTTP_200_OK )
         
 class ActiveCollaborationListView(APIView):
-    def get(self, request, storeId: int):
-        storeId = int(storeId)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        
+        user = request.user.profile
 
-        # (선택) 가게 존재 확인 로직이 필요하면 주석 해제
-        # if not Store.objects.filter(id=store_id).exists():
-        #     return Response({"status": 404, "message": "가게 없음", "data": {}},
-        #                     status=status.HTTP_404_NOT_FOUND)
+        rows = getActiveCollaboration(user)
 
-        rows = getActiveCollaboration(storeId)
-
-        items = ActiveItem(rows, many=True, context={"storeId": storeId}).data
+        items = ActiveItem(rows, many=True, context={"storeId": user.stores.first().id}).data
         out = {
             "status": 200,
             "message": "조회 성공",
@@ -130,10 +140,12 @@ class ActiveCollaborationListView(APIView):
         return Response(out, status=status.HTTP_200_OK)
     
 class RequestCollaborateListView(APIView):
-    def get(self, request, storeId:int):
-        storeId = int(storeId)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user.profile
         
-        rows = getRequestCollaboration(storeId)
+        rows = getRequestCollaboration(user)
         items = OutgoingItem(rows, many=True).data
         
         out = {
@@ -147,10 +159,12 @@ class RequestCollaborateListView(APIView):
     
     
 class ResponseCollaborateListView(APIView):
-    def get(self, request, storeId:int):
-        storeId = int(storeId)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user.profile
         
-        rows = getResponseCollaboration(storeId)
+        rows = getResponseCollaboration(user)
         items = IncomingItem(rows, many=True).data
         
         out = {
@@ -163,14 +177,18 @@ class ResponseCollaborateListView(APIView):
         return Response(out, status=status.HTTP_200_OK)
     
 class CollaborateDecisionView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def patch(self, request):
+        user = request.user.profile
+        
         req = CollaborationDecisionReq(data=request.data)
         req.is_valid(raise_exception=True)
         
         collaborateId = req.validated_data["collaborateId"]
         isAccepted = req.validated_data["isAccepted"]
         
-        msg = decisionCollaboration(collaborateId, isAccepted)
+        msg = decisionCollaboration(collaborateId, isAccepted, user)
         
         out = {
             "status":200,
