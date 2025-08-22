@@ -63,15 +63,12 @@ def updateReviewData(store: Store, reviewData: list):
 def postReviewAnalysis(storeId: int, term: int):
     try:
         store = Store.objects.get(pk=storeId)
-        # Store 모델에 카카오맵 ID를 저장하는 필드가 'kakao_place_id'라고 가정
         if not store.kakaoPlaceId:
             raise ValueError("가게에 kakaoPlaceId가 등록되어 있지 않습니다.")
     except (Store.DoesNotExist, ValueError) as e:
         print(f"서비스 처리 불가: {e}")
         return None # 가게가 없거나 kakao_id가 없으면 None 반환
 
-    # 최신 리뷰를 위해 크롤러 실행 및 DB 업데이트
-    # (주의: API 호출마다 크롤링이 실행되어 느릴 수 있음. 캐싱 전략 고려 필요)
     scrapedReviews = getKakaoReview(store.kakaoPlaceId)
     if scrapedReviews:
         updateReviewData(store, scrapedReviews)

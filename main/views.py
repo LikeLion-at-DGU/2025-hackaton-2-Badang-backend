@@ -11,6 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError # DRF �
 
 from .services import *
 from .selectors import *
+from review.services import postReviewAnalysis
 
 
 # DomainError는 서비스 계층의 비즈니스 로직 오류에만 사용하도록 범위를 좁힙니다.
@@ -44,16 +45,21 @@ class signupView(APIView):
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=False,
+                samesite='Lax'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=False,
+                samesite='Lax'
             )
+            
+            # 회원가입 시 리뷰 분석 선실행
+            storeId = result['user'].stores.id
+            postReviewAnalysis(storeId=storeId, term=0)
+            postReviewAnalysis(storeId=storeId, term=1)
             
             return response
             
@@ -136,7 +142,9 @@ class loginView(APIView):
             response = Response({
                 'message': '로그인 성공',
                 'userId': result['user'].id,
-                'username': result['user'].username
+                'username': result['user'].username,
+                'storeId': result['user'].stores.id,
+                'isCollaborate': result['user'].isCollaborate,
             }, status=status.HTTP_200_OK)
             
             # secure=True로 통일하여 보안 강화
@@ -144,17 +152,21 @@ class loginView(APIView):
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=False,
+                samesite='Lax'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=False,
+                samesite='Lax'
             )
-            
+
+            storeId = result['user'].stores.id
+            postReviewAnalysis(storeId=storeId, term=0)
+            postReviewAnalysis(storeId=storeId, term=1)
+
             return response
             
         except DomainError as e:
@@ -202,8 +214,8 @@ class tokenRefreshView(APIView):
                 'access_token',
                 new_access_token,
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=False,
+                samesite='Lax'
             )
             
             return response
