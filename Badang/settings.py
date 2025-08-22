@@ -220,7 +220,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
-    "https://badangsw.netlify.app/",
+    "https://badangsw.netlify.app",
 ]
 
 OPENAI_API_KEY = env("OPENAI_API_KEY")
@@ -228,4 +228,4 @@ OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 
 SITE_ID = 1
 
-ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_AUTHENTICATION_METHOD = {"username"}
