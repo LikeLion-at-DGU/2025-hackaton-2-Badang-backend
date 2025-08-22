@@ -116,7 +116,15 @@ class storeView(APIView):
             return Response({
                 "message": "상세정보 등록 완료",
                 "statusCode": "200",
-                "data": { "id": result.id, "name": result.name }
+                "data": { 
+                    "id": result.id,
+                    "name": result.name,
+                    "type":result.type,
+                    "category":result.category,
+                    "visitor":result.visitor,
+                    "content":result.content,
+                    "isWillingCollaborate":result.isWillingCollaborate
+                }
             }, status=status.HTTP_200_OK)
         
         except DomainError as e:
@@ -139,12 +147,11 @@ class loginView(APIView):
                 password=req.validated_data["password"]
             )
             
+            store = Store.objects.filter(user=result)
+            
             response = Response({
                 'message': '로그인 성공',
-                'userId': result['user'].id,
-                'username': result['user'].username,
-                'storeId': result['user'].stores.id,
-                'isCollaborate': result['user'].isCollaborate,
+                "store":store
             }, status=status.HTTP_200_OK)
             
             # secure=True로 통일하여 보안 강화

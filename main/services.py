@@ -85,7 +85,7 @@ def storeUpdate(store:Store, **data):
         if 'isWillingCollaborate' in data and data.get('isWillingCollaborate') is not None:
             store.isWillingCollaborate = data['isWillingCollaborate']
         if 'storeContent' in data:
-            store.storeContent = data['storeContent']
+            store.content = data['storeContent']
             
         store.save()
         
