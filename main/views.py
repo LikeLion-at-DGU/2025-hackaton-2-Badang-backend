@@ -202,8 +202,8 @@ class tokenRefreshView(APIView):
                 'access_token',
                 new_access_token,
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             
             return response
