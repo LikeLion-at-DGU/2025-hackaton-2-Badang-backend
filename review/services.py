@@ -1,5 +1,6 @@
 import requests, environ, json
 from datetime import timedelta
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from .models import Review, Reviewer, ReviewAnalysis
 from main.models import Store
@@ -16,25 +17,27 @@ def getStoreId(storeName, storeAddress):
     headers = {
         "Authorization": f"KakaoAK {api_key}"
     }
-    
+
+    # 키워드와 주소를 함께 넣어 검색 정확도를 높입니다.
     query = f"{storeName} {storeAddress}"
     params = {"query": query}
     
     response = requests.get(url, headers=headers, params=params)
     data = response.json()
     
-    if data.get("documents"):
-        first_document = data["documents"][0]
-        
-        return {
-            "id": first_document["id"],
-            "placePhone": first_document["phone"],
-            "placeLatitude": first_document["y"],
-            "placeLongitude": first_document["x"],
-        }
-    
-    return {}
+    if not data.get("documents"):
+        # 검색 결과가 없으면 예외 발생
+        print(f"매장 정보를 찾을 수 없습니다: {query}")
+        return None # 또는 예외를 발생시킵니다.
 
+    first_document = data["documents"][0]
+    
+    return {
+        "id": first_document.get("id"),
+        "placePhone": first_document.get("phone"),
+        "placeLatitude": first_document.get("y"),
+        "placeLongitude": first_document.get("x"),
+    }
 
 def updateReviewData(store: Store, reviewData: list):
     createReview = []
