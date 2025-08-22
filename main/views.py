@@ -1,234 +1,234 @@
-    from rest_framework.decorators import permission_classes
-    from rest_framework.permissions import AllowAny, IsAuthenticated
-    from rest_framework.response import Response
-    from rest_framework import status
-    from .models import *
-    from .serializers import *
-    from rest_framework.views import APIView
-    from django.shortcuts import get_object_or_404
-    from rest_framework_simplejwt.tokens import RefreshToken
-    from rest_framework.exceptions import PermissionDenied, ValidationError # DRF 예외 사용
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import *
+from .serializers import *
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import PermissionDenied, ValidationError # DRF 예외 사용
 
-    from .services import *
-    from .selectors import *
-    from review.services import postReviewAnalysis
-
-
-    # DomainError는 서비스 계층의 비즈니스 로직 오류에만 사용하도록 범위를 좁힙니다.
-    class DomainError(Exception):
-        pass
+from .services import *
+from .selectors import *
+from review.services import postReviewAnalysis
 
 
-    class signupView(APIView):
-        permission_classes= [AllowAny]
-        authentication_classes = []
+# DomainError는 서비스 계층의 비즈니스 로직 오류에만 사용하도록 범위를 좁힙니다.
+class DomainError(Exception):
+    pass
+
+
+class signupView(APIView):
+    permission_classes= [AllowAny]
+    authentication_classes = []
+    
+    def post(self, request):
+        req = signupSerializer(data = request.data)
+        req.is_valid(raise_exception=True)
         
-        def post(self, request):
-            req = signupSerializer(data = request.data)
-            req.is_valid(raise_exception=True)
+        try:
+            result = profileCreate(
+                username=req.validated_data["id"],
+                password=req.validated_data["password"],
+                name=req.validated_data["name"],
+                phoneNumber=req.validated_data["phoneNumber"]
+            )
             
-            try:
-                result = profileCreate(
-                    username=req.validated_data["id"],
-                    password=req.validated_data["password"],
-                    name=req.validated_data["name"],
-                    phoneNumber=req.validated_data["phoneNumber"]
-                )
-                
-                response = Response({
-                    'message': '회원가입 성공',
-                    'profileId': result['profile'].user_id,
-                }, status=status.HTTP_201_CREATED)
-                
-                # secure=True로 일관성 유지 (HTTPS 환경에서만 쿠키 전송)
-                response.set_cookie(
-                    'access_token', 
-                    result['tokens']['access'],
-                    httponly=True,
-                    secure=False,
-                    samesite='Lax'
-                )
-                response.set_cookie(
-                    'refresh_token', 
-                    result['tokens']['refresh'],
-                    httponly=True,
-                    secure=False,
-                    samesite='Lax'
-                )
+            response = Response({
+                'message': '회원가입 성공',
+                'profileId': result['profile'].user_id,
+            }, status=status.HTTP_201_CREATED)
+            
+            # secure=True로 일관성 유지 (HTTPS 환경에서만 쿠키 전송)
+            response.set_cookie(
+                'access_token', 
+                result['tokens']['access'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'refresh_token', 
+                result['tokens']['refresh'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
 
-                return response
-                
-            except DomainError as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return response
+            
+        except DomainError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    class storeView(APIView):
-        permission_classes = [IsAuthenticated]
+class storeView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
         
-        def post(self, request):
+        user = request.user.profile
+        req = storeSerializerReq(data = request.data)
+        req.is_valid(raise_exception=True)
+        
+        try:
+            # request.user가 Profile 객체라고 가정합니다.
+            result = storeCreate(
+                name=req.validated_data["name"],
+                address=req.validated_data["address"],
+                user= user
+            )
             
-            user = request.user.profile
-            req = storeSerializerReq(data = request.data)
-            req.is_valid(raise_exception=True)
+            return Response({
+                "message": "가게 정보 등록 완료",
+                "statusCode": "201",
+                "data": {
+                    "id": result.id,
+                    "name": result.name,
+                    "address": result.address
+                }
+            }, status=status.HTTP_201_CREATED)
             
-            try:
-                # request.user가 Profile 객체라고 가정합니다.
-                result = storeCreate(
-                    name=req.validated_data["name"],
-                    address=req.validated_data["address"],
-                    user= user
-                )
-                
-                return Response({
-                    "message": "가게 정보 등록 완료",
-                    "statusCode": "201",
-                    "data": {
-                        "id": result.id,
-                        "name": result.name,
-                        "address": result.address
-                    }
-                }, status=status.HTTP_201_CREATED)
-                
-                
-                
-            except DomainError as e:
-                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+            
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    
+    def patch(self, request):
+        
+        store = request.user.profile.stores.first()
+        
+        # 가게가 존재하지 않는 경우 (예: 아직 가게를 등록하지 않은 사용자)
+        if not store:
+            return Response({"detail": "수정할 가게를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 시리얼라이저는 이제 id 없이 데이터만 검증합니다.
+        req = storeUpdateSerializerReq(data=request.data)
+        req.is_valid(raise_exception=True)
+        
+        try:
+            # 검증된 store 객체와 데이터를 서비스 함수에 전달합니다.
+            result = storeUpdate(store=store, **req.validated_data)
+            
+            storeId = result.id
+            postReviewAnalysis(storeId=storeId, term=0)
+            postReviewAnalysis(storeId=storeId, term=1)
+            
+            return Response({
+                "message": "상세정보 등록 완료",
+                "statusCode": "200",
+                "data": { 
+                    "id": result.id,
+                    "name": result.name,
+                    "type":result.type,
+                    "category":result.category,
+                    "visitor":result.visitor,
+                    "content":result.content,
+                    "isWillingCollaborate":result.isWillingCollaborate
+                }
+            }, status=status.HTTP_200_OK)
+            
             
         
-        def patch(self, request):
-            
-            store = request.user.profile.stores.first()
-            
-            # 가게가 존재하지 않는 경우 (예: 아직 가게를 등록하지 않은 사용자)
-            if not store:
-                return Response({"detail": "수정할 가게를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-
-            # 시리얼라이저는 이제 id 없이 데이터만 검증합니다.
-            req = storeUpdateSerializerReq(data=request.data)
-            req.is_valid(raise_exception=True)
-            
-            try:
-                # 검증된 store 객체와 데이터를 서비스 함수에 전달합니다.
-                result = storeUpdate(store=store, **req.validated_data)
-                
-                storeId = result.id
-                postReviewAnalysis(storeId=storeId, term=0)
-                postReviewAnalysis(storeId=storeId, term=1)
-                
-                return Response({
-                    "message": "상세정보 등록 완료",
-                    "statusCode": "200",
-                    "data": { 
-                        "id": result.id,
-                        "name": result.name,
-                        "type":result.type,
-                        "category":result.category,
-                        "visitor":result.visitor,
-                        "content":result.content,
-                        "isWillingCollaborate":result.isWillingCollaborate
-                    }
-                }, status=status.HTTP_200_OK)
-                
-                
-            
-            except DomainError as e:
-                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
-    class loginView(APIView):
-        permission_classes = [AllowAny]
-        authentication_classes = []
+class loginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    def post(self, request):
+        print("로그인 뷰에 요청이 성공적으로 도착했습니다.")
+        req = loginSerializer(data=request.data)
+        req.is_valid(raise_exception=True)
         
-        def post(self, request):
-            print("로그인 뷰에 요청이 성공적으로 도착했습니다.")
-            req = loginSerializer(data=request.data)
-            req.is_valid(raise_exception=True)
+        try:
+            result = profileLogin(
+                username=req.validated_data["id"],
+                password=req.validated_data["password"]
+            )
             
-            try:
-                result = profileLogin(
-                    username=req.validated_data["id"],
-                    password=req.validated_data["password"]
-                )
-                
-                store = Store.objects.filter(user=result)
-                
-                response = Response({
-                    'message': '로그인 성공',
-                    "store":store
-                }, status=status.HTTP_200_OK)
-                
-                # secure=True로 통일하여 보안 강화
-                response.set_cookie(
-                    'access_token', 
-                    result['tokens']['access'],
-                    httponly=True,
-                    secure=False,
-                    samesite='Lax'
-                )
-                response.set_cookie(
-                    'refresh_token', 
-                    result['tokens']['refresh'],
-                    httponly=True,
-                    secure=False,
-                    samesite='Lax'
-                )
+            store = Store.objects.filter(user=result)
+            
+            response = Response({
+                'message': '로그인 성공',
+                "store":store
+            }, status=status.HTTP_200_OK)
+            
+            # secure=True로 통일하여 보안 강화
+            response.set_cookie(
+                'access_token', 
+                result['tokens']['access'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'refresh_token', 
+                result['tokens']['refresh'],
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
 
-                storeId = result['user'].stores.id
-                postReviewAnalysis(storeId=storeId, term=0)
-                postReviewAnalysis(storeId=storeId, term=1)
+            storeId = result['user'].stores.id
+            postReviewAnalysis(storeId=storeId, term=0)
+            postReviewAnalysis(storeId=storeId, term=1)
 
-                return response
-                
-            except DomainError as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return response
+            
+        except DomainError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-    class logoutView(APIView):
-        permission_classes = [IsAuthenticated]
-        
-        def post(self, request):
-            try:
-                refresh_token = request.COOKIES.get('refresh_token')
-                if not refresh_token:
-                    return Response({'error': 'refresh token이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                profileLogout(refresh_token)
-                
-                response = Response({'message': '로그아웃 성공'}, status=status.HTTP_200_OK)
-                
-                response.delete_cookie('access_token')
-                response.delete_cookie('refresh_token')
-                
-                return response
-                
-            except DomainError as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-    class tokenRefreshView(APIView):
-        permission_classes = [AllowAny]
-        
-        def post(self, request):
+class logoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
             refresh_token = request.COOKIES.get('refresh_token')
             if not refresh_token:
                 return Response({'error': 'refresh token이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
             
-            try:
-                token = RefreshToken(refresh_token)
-                new_access_token = str(token.access_token)
-                
-                response = Response({'message': '토큰 갱신 성공'}, status=status.HTTP_200_OK)
-                
-                # secure=True로 통일하여 보안 강화
-                response.set_cookie(
-                    'access_token',
-                    new_access_token,
-                    httponly=True,
-                    secure=False,
-                    samesite='Lax'
-                )
-                
-                return response
-                
-            except Exception as e:
-                return Response({'error': '유효하지 않은 토큰입니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+            profileLogout(refresh_token)
+            
+            response = Response({'message': '로그아웃 성공'}, status=status.HTTP_200_OK)
+            
+            response.delete_cookie('access_token')
+            response.delete_cookie('refresh_token')
+            
+            return response
+            
+        except DomainError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class tokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'error': 'refresh token이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            token = RefreshToken(refresh_token)
+            new_access_token = str(token.access_token)
+            
+            response = Response({'message': '토큰 갱신 성공'}, status=status.HTTP_200_OK)
+            
+            # secure=True로 통일하여 보안 강화
+            response.set_cookie(
+                'access_token',
+                new_access_token,
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+            
+            return response
+            
+        except Exception as e:
+            return Response({'error': '유효하지 않은 토큰입니다.'}, status=status.HTTP_401_UNAUTHORIZED)
