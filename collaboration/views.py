@@ -25,7 +25,7 @@ class CollaborationSearchListView(APIView):
         
         type = req.validated_data["type"]
         category = req.validated_data["category"]
-        query = req.validated_data["query"]
+        query = req.validated_data.get("query", "")
         
         user = request.user.profile
         
@@ -34,13 +34,13 @@ class CollaborationSearchListView(APIView):
         except DomainError as e:
             return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        stores = CollaborationSearchRes(res, many=True)
+        stores = CollaborationSearchRes(res, many=True).data
         
         out = {
             "status":200,
             "message":"가까운 8개 가게 반환 완료",
             "data":{
-                "store":stores.data
+                "store":stores
             }
         }
         return Response(out, status=status.HTTP_200_OK)
@@ -70,7 +70,7 @@ class CollaborationPostView(APIView):
             "status": 201,
             "message": "요청 성공",
             "collaborateId": collab.id,
-            "IsAccepted":collab.isAccepted
+            "isAccepted":collab.isAccepted
         }
         return Response(out, status=status.HTTP_201_CREATED )
 
@@ -126,10 +126,13 @@ class ActiveCollaborationListView(APIView):
     def get(self, request):
         
         user = request.user.profile
-
         rows = getActiveCollaboration(user)
-
-        items = ActiveItem(rows, many=True, context={"storeId": user.stores.first().id}).data
+        
+        me = user.stores.first()
+        if not me:
+            return Response({"detail": "소유한 가게 정보가 없습니다."}, status=400)
+        items = ActiveItem(rows, many=True, context={"storeId": me.id}).data
+        
         out = {
             "status": 200,
             "message": "조회 성공",
