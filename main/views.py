@@ -20,6 +20,7 @@ class DomainError(Exception):
 
 class signupView(APIView):
     permission_classes= [AllowAny]
+    authentication_classes = []
     
     def post(self, request):
         req = signupSerializer(data = request.data)
@@ -119,8 +120,10 @@ class storeView(APIView):
 
 class loginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     
     def post(self, request):
+        print("로그인 뷰에 요청이 성공적으로 도착했습니다.")
         req = loginSerializer(data=request.data)
         req.is_valid(raise_exception=True)
         
