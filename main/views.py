@@ -46,6 +46,9 @@ class signupView(APIView):
                 httponly=True,
                 secure=True,
                 samesite='None'
+                #테스트시 활성화
+                #secure=False,
+                #samesite='Lax'
             )
             response.set_cookie(
                 'refresh_token', 
@@ -53,6 +56,9 @@ class signupView(APIView):
                 httponly=True,
                 secure=True,
                 samesite='None'
+                #테스트시 활성화
+                #secure=False,
+                #samesite='Lax'
             )
             
             return response
@@ -146,6 +152,9 @@ class loginView(APIView):
                 httponly=True,
                 secure=True,
                 samesite='None'
+                #테스트시 활성화
+                #secure=False,
+                #samesite='Lax'
             )
             response.set_cookie(
                 'refresh_token', 
@@ -153,6 +162,9 @@ class loginView(APIView):
                 httponly=True,
                 secure=True,
                 samesite='None'
+                #테스트시 활성화
+                #secure=False,
+                #samesite='Lax'
             )
             
             return response
@@ -204,6 +216,10 @@ class tokenRefreshView(APIView):
                 httponly=True,
                 secure=True,
                 samesite='None'
+                #테스트시 활성화
+                #secure=False,
+                #samesite='Lax'
+                
             )
             
             return response
