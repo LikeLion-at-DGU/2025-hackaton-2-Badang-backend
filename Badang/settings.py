@@ -228,4 +228,4 @@ OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 
 SITE_ID = 1
 
-ACCOUNT_AUTHENTICATION_METHOD = {"username"}
+ACCOUNT_AUTHENTICATION_METHOD = "username"
