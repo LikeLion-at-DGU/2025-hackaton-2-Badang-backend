@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os, environ
 from datetime import timedelta
+from dotenv import load_dotenv load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'storage',
     
 ]
 
@@ -229,3 +231,5 @@ OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 SITE_ID = 1
 
 ACCOUNT_AUTHENTICATION_METHOD = "username"
+
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID') AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY') AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME') AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-northeast-2') AWS_S3_SIGNATURE_VERSION = 's3v4'

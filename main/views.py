@@ -57,7 +57,7 @@ class signupView(APIView):
             )
             
             # 회원가입 시 리뷰 분석 선실행
-            storeId = result['user'].stores.id
+            storeId = result['profile'].stores.id
             postReviewAnalysis(storeId=storeId, term=0)
             postReviewAnalysis(storeId=storeId, term=1)
             
