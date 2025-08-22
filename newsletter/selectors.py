@@ -50,3 +50,47 @@ def getNewsletterList(store: Store, cursor: Optional[int] = None, limit: int = 9
 def getNewsletterDetail(news_id: int) -> Newsletter:
 
     return Newsletter.objects.select_related('store', 'user', 'review_analysis').prefetch_related('keywords').get(id=news_id)
+
+
+def searchNewsletters(query: str = None, keyword: str = None, is_user_made: bool = None, is_liked: bool = None, page: int = None, limit: int = 9):
+    """
+    검색 셀렉터
+    :param query: 제목/콘텐츠 검색어
+    :param keyword: 키워드 이름으로 필터
+    :param is_user_made: boolean으로 필터
+    :param is_liked: boolean으로 필터
+    :param page: 페이지 기반 페이징
+    :param limit: 페이지 크기
+    :return: (list[Newsletter], hasMore)
+    """
+    queryset = Newsletter.objects.all().select_related('store', 'user').prefetch_related('keywords').order_by('-id')
+
+    if query:
+        queryset = queryset.filter(title__icontains=query)  # 필요시 내용 검색 포함
+
+    if keyword:
+        queryset = queryset.filter(keywords__keywordName__icontains=keyword)
+
+    if is_user_made is not None:
+        queryset = queryset.filter(isUserMade=bool(is_user_made))
+
+    if is_liked is not None:
+        queryset = queryset.filter(isLiked=bool(is_liked))
+
+    if page is not None:
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            raise ValueError('page 값이 유효하지 않습니다')
+        if page < 1:
+            raise ValueError('page 값은 1 이상의 정수여야 합니다')
+        offset = (page - 1) * limit
+        total = queryset.count()
+        result = list(queryset[offset: offset + limit])
+        hasMore = (offset + limit) < total
+        return result, hasMore
+
+    # 기본: limit 만큼 가져오고 hasMore 계산
+    items = list(queryset[: limit + 1])
+    hasMore = len(items) > limit
+    return items[:limit], hasMore
