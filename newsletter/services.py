@@ -48,3 +48,35 @@ def getNewsletter(newsletterId: int) -> Newsletter:
     
     except Newsletter.DoesNotExist:
         raise ValueError("뉴스레터를 찾을 수 없습니다.")
+    
+#사용자 키워드로 뉴스레터 제작
+def createNewsletterByUser(storeId: int, keyword:Keyword) -> Newsletter:
+    try:
+        store = Store.objects.get(pk=storeId)
+        reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
+    
+    except Store.DoesNotExist:
+        raise ValueError("가게를 찾을 수 없습니다.")
+    except ReviewAnalysis.DoesNotExist:
+        raise ValueError("리뷰 분석을 찾을 수 없습니다.")
+    except Keyword.DoesNotExist:
+        raise ValueError("키워드를 찾을 수 없습니다.")
+    
+    storeData = model_to_dict(store)
+    reviewData = model_to_dict(reviewAnalysis)
+    keywordData = {"keyword": keyword.keywordName}
+
+    createNewNewsletter = createNewsletterAI(reviewData, keywordData, storeData)
+    user = store.user
+    newNewsletter = Newsletter.objects.create(
+        user=user,
+        store=store,
+        review_analysis=reviewAnalysis,
+        isUserMade=False,
+        title=createNewNewsletter.get("title"),
+        firstContent=createNewNewsletter.get("firstContent"),
+        secondContent=createNewNewsletter.get("secondContent")
+    )
+    newNewsletter.keywords.add(keyword)
+        
+    return newNewsletter

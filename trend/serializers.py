@@ -6,7 +6,6 @@ from main.models import *
 # 사용자가 직접 입력하는 키워드
 class KeywordsInputReq(serializers.Serializer):
     keyword = serializers.CharField()
-    storeId = serializers.IntegerField()
 
 # 관리자가 트렌드 입력할 때 사용
 class TrendInputReq(serializers.Serializer):
