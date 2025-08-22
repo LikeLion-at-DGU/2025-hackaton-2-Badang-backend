@@ -1,13 +1,14 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied, NotFound
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 
 from .selectors import getNewsletterList
+from .selectors import searchNewsletters
 from .serializers import NewsletterListSerializer, NewsletterSerializer
 from .services import createNewsletter
 from .models import Newsletter
@@ -116,23 +117,79 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        
-@api_view(['POST']) # GET, POST 등 허용할 HTTP 메서드 명시
-def createNewsletterTest(request, storeId):
-    """
-    뉴스레터 생성 뷰
-    """
-    if request.method == 'POST':
+    def search(self, request, *args, **kwargs):
+        query = request.query_params.get('query')
+        keyword = request.query_params.get('keyword')
+        is_user_made = request.query_params.get('isUserMade')
+        is_liked = request.query_params.get('isLiked')
+        page = request.query_params.get('page')
+        limit = request.query_params.get('limit', 9)
+
         try:
-            # ... (이전 코드)
-            new_newsletter = createNewsletter(storeId=storeId)
-
+            limit = int(limit)
+        
+        except (ValueError, TypeError):
             return Response({
-                "message": "뉴스레터가 성공적으로 생성되었습니다.",
-                "data": NewsletterSerializer(new_newsletter).data
-            }, status=status.HTTP_201_CREATED)
+                "error": "BadRequest",
+                "message": "limit 값이 유효하지 않습니다",
+                "statusCode": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            results, hasMore = searchNewsletters(query=query, keyword=keyword, is_user_made=is_user_made, is_liked=is_liked, page=page, limit=limit)
+        
+        except ValueError as e:
+            return Response({
+                "error": "BadRequest",
+                "message": str(e),
+                "statusCode": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        serializer = NewsletterListSerializer(results, many=True, context={"request": request})
+
+        return Response({
+            "message": "뉴스레터 검색 성공",
+            "statusCode": 200,
+            "data": {
+                "newsletters": serializer.data
+            },
+            "hasMore": hasMore
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['patch'])
+    def like(self, request, pk=None):
+        try:
+            newsletter = get_object_or_404(Newsletter, id=pk)
+        except Exception:
+            return Response({"error": "NotFound", "message": "해당 뉴스레터를 찾을 수 없습니다", "statusCode": 404}, status=status.HTTP_404_NOT_FOUND)
+
+        if newsletter.isLiked:
+            message = "찜하기 성공"
+        else:
+            message = "찜하기 해제 성공"
+
+        newsletter.isLiked = not bool(newsletter.isLiked)
+        newsletter.save()
+
+        return Response({
+            "message": message,
+            "statusCode": 200,
+            "data": {"isLiked": newsletter.isLiked}
+        }, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=['POST']) 
+    def create(request, storeId):# 뉴스레터 생성 테스트
+        if request.method == 'POST':
+            try:
+                new_newsletter = createNewsletter(storeId=storeId)
+
+                return Response({
+                    "message": "뉴스레터가 성공적으로 생성되었습니다.",
+                    "data": NewsletterSerializer(new_newsletter).data
+                }, status=status.HTTP_201_CREATED)
+
+            except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
