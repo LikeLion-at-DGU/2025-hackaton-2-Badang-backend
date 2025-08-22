@@ -58,15 +58,8 @@ class CreateKeywordView(APIView):
             out = KeywordRes(res)  # 실제 생성된 키워드 정보 반환
             print(keyword)
             
-            news = createNewsletterByUser(me.id, keyword)
-            print(news)
-
-            newsletterDetail = getNewsletterDetail(news.id)
-            print(f"디버그: 정수로 변환된 news_id: {news.id}")
-            
-            print(f"디버그: 데이터베이스에서 객체 발견. ID: {newsletterDetail.id}")
-
-            serializer = NewsletterSerializer(newsletterDetail)
+            news = createNewsletterByUser(me.id, res)
+            serializer = NewsletterSerializer(news, context={'request': request})
 
             responseData = {
                 "message": "뉴스레터 상세 정보를 성공적으로 조회하였습니다.",
