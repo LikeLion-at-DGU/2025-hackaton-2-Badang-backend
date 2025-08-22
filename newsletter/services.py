@@ -3,6 +3,7 @@ from .models import Newsletter
 from .getnewsletter import createNewsletterAI
 from trend.models import Keyword
 from review.models import ReviewAnalysis
+from trend.serializers import KeywordRes
 
 from django.forms.models import model_to_dict
 
@@ -50,11 +51,11 @@ def getNewsletter(newsletterId: int) -> Newsletter:
         raise ValueError("뉴스레터를 찾을 수 없습니다.")
     
 #사용자 키워드로 뉴스레터 제작
-def createNewsletterByUser(storeId: int, keyword:Keyword) -> Newsletter:
+def createNewsletterByUser(storeId: int, keyword: str) -> Newsletter:
     try:
         store = Store.objects.get(pk=storeId)
         reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
-    
+        
     except Store.DoesNotExist:
         raise ValueError("가게를 찾을 수 없습니다.")
     except ReviewAnalysis.DoesNotExist:
@@ -64,10 +65,11 @@ def createNewsletterByUser(storeId: int, keyword:Keyword) -> Newsletter:
     
     storeData = model_to_dict(store)
     reviewData = model_to_dict(reviewAnalysis)
-    keywordData = {"keyword": keyword.keywordName}
+    keywordData = {"keyword": keyword}
 
     createNewNewsletter = createNewsletterAI(reviewData, keywordData, storeData)
     user = store.user
+        
     newNewsletter = Newsletter.objects.create(
         user=user,
         store=store,
@@ -77,6 +79,7 @@ def createNewsletterByUser(storeId: int, keyword:Keyword) -> Newsletter:
         firstContent=createNewNewsletter.get("firstContent"),
         secondContent=createNewNewsletter.get("secondContent")
     )
+        
     newNewsletter.keywords.add(keyword)
         
     return newNewsletter

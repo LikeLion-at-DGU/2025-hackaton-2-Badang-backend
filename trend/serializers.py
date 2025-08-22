@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from .models import *
 from main.models import *
+from newsletter.models import Newsletter
 
 # 사용자가 직접 입력하는 키워드
 class KeywordsInputReq(serializers.Serializer):
@@ -26,3 +27,18 @@ class TrendRes(serializers.ModelSerializer):
     class Meta:
         model = Trend
         fields = ["id", "trendData", "createdAt", "keywords"]
+        
+class NewsletterRes(serializers.ModelSerializer):
+    class Meta:
+        model = Newsletter
+        fields = [
+            "id", 
+            "title",
+            "thumbnail",
+            "isUserMade",
+            "createdAt",
+            "isLiked",
+            "firstContent", 
+            "secondContent", 
+            "feedback"
+        ]

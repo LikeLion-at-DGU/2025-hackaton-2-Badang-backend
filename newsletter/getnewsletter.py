@@ -64,22 +64,19 @@ def createNewsletterAI(reviewAnalysisPayload: dict, keywordPayload: str, storePa
     }
     
     llm_response = ""
+    
     try:
         llm_response = run_llm(system, user)
         cleaned_response = llm_response.strip().replace("```json", "").replace("```", "")
         parsed_json = json.loads(cleaned_response)
-        
-        # --- 이 부분을 수정하세요! ---
-        # "data" 키에서 실제 내용이 담긴 딕셔너리를 가져옵니다.
-        newsletter_data = parsed_json.get("data", {})
-        
+
+        newsletter_data = parsed_json.get("data", {"title": "", "firstContent": "", "secondContent": ""})
+
         # "data" 딕셔너리 내의 키를 사용하여 값을 가져옵니다.
         title = newsletter_data.get("title", "보고서 제목이 생성되지 않았습니다.")
         firstContent = newsletter_data.get("firstContent", "보고서 생성 중 오류가 발생했습니다. 다시 시도해 주세요.")
         secondContent = newsletter_data.get("secondContent", "내용이 없습니다.")
-        
-        # models.py에 thirdContent가 없으므로 이 부분은 삭제하거나, 
-        # thirdContent가 필요하면 모델을 수정해야 합니다.
+
         
         # 모든 필수 필드를 포함하는 딕셔너리 반환
         return {
