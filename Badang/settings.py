@@ -220,7 +220,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
-    #프론트엔드 배포 주소
+    "https://badangsw.netlify.app/",
 ]
 
 OPENAI_API_KEY = env("OPENAI_API_KEY")
