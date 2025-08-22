@@ -2,6 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, get_list_or_404
 from django.core.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from common.serializers import *
 from main.models import *
@@ -76,16 +77,25 @@ def getCollaborationSearch(user,
                             category_: Optional[int] = None,
                             query:str=""):
     
+    
     me = user.stores.first()
+    if not me:
+        return Response({"detail": "소유한 가게 정보가 없습니다."}, status=400)
     
     if not me:
         # 소유한 가게가 없는 경우
         raise DomainError("소유한 가게 정보가 없습니다.")
 
     # 후보 골라내기 (자기 자신 제외 + 협업 가능만)
-    qs = (Store.objects
-        .filter(isWillingCollaborate=True)
-        .exclude(id=me.id)) 
+    qs = (
+    Store.objects
+    .filter(isWillingCollaborate=True, latitude__isnull=False, longitude__isnull=False)
+    .exclude(id=me.id)
+    )
+
+    # 그리고 내 가게도 좌표 검증
+    if None in (me.latitude, me.longitude):
+        raise DomainError("내 가게의 위치 정보가 없습니다.")
     
     
     if type_ is not None:
