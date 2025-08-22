@@ -11,6 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError # DRF �
 
 from .services import *
 from .selectors import *
+from review.getReview import getKakaoReview
 
 
 # DomainError는 서비스 계층의 비즈니스 로직 오류에만 사용하도록 범위를 좁힙니다.
@@ -136,7 +137,9 @@ class loginView(APIView):
             response = Response({
                 'message': '로그인 성공',
                 'userId': result['user'].id,
-                'username': result['user'].username
+                'username': result['user'].username,
+                'storeId': result['user'].stores.id,
+                'isCollaborate': result['user'].isCollaborate,
             }, status=status.HTTP_200_OK)
             
             # secure=True로 통일하여 보안 강화
@@ -154,6 +157,8 @@ class loginView(APIView):
                 secure=False,
                 samesite='Lax'
             )
+            
+            getKakaoReview(kakaoStoreId=result['user'].stores.kakaoPlaceId)
             
             return response
             
