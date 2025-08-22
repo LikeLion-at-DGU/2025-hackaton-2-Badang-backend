@@ -51,7 +51,7 @@ def getNewsletter(newsletterId: int) -> Newsletter:
         raise ValueError("뉴스레터를 찾을 수 없습니다.")
     
 #사용자 키워드로 뉴스레터 제작
-def createNewsletterByUser(storeId: int, keyword: str) -> Newsletter:
+def createNewsletterByUser(storeId: int, keyword) -> Newsletter:
     try:
         store = Store.objects.get(pk=storeId)
         reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
@@ -65,7 +65,7 @@ def createNewsletterByUser(storeId: int, keyword: str) -> Newsletter:
     
     storeData = model_to_dict(store)
     reviewData = model_to_dict(reviewAnalysis)
-    keywordData = {"keyword": keyword}
+    keywordData = {"keyword": keyword.keywordName if hasattr(keyword, 'keywordName') else str(keyword)}
 
     createNewNewsletter = createNewsletterAI(reviewData, keywordData, storeData)
     user = store.user
@@ -79,7 +79,15 @@ def createNewsletterByUser(storeId: int, keyword: str) -> Newsletter:
         firstContent=createNewNewsletter.get("firstContent"),
         secondContent=createNewNewsletter.get("secondContent")
     )
-        
-    newNewsletter.keywords.add(keyword)
+
+    try:
+        if hasattr(keyword, 'pk'):
+            newNewsletter.keywords.add(keyword)
+        else:
+            kw_obj = Keyword.objects.filter(keywordName=str(keyword)).order_by('-keywordCreatedAt').first()
+            if kw_obj:
+                newNewsletter.keywords.add(kw_obj)
+    except Exception as e:
+        print(f"Warning: could not attach keyword to newsletter: {e}")
         
     return newNewsletter
