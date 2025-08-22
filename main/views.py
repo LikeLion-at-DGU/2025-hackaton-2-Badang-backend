@@ -45,15 +45,15 @@ class signupView(APIView):
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             
             return response
@@ -147,15 +147,15 @@ class loginView(APIView):
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             
             getKakaoReview(kakaoStoreId=result['user'].stores.kakaoPlaceId)
@@ -207,8 +207,8 @@ class tokenRefreshView(APIView):
                 'access_token',
                 new_access_token,
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             
             return response
