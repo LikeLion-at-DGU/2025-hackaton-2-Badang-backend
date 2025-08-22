@@ -57,10 +57,10 @@ class signupView(APIView):
             )
             
             # 회원가입 시 리뷰 분석 선실행
-            storeId = result['profile'].stores.id
-            postReviewAnalysis(storeId=storeId, term=0)
-            postReviewAnalysis(storeId=storeId, term=1)
-            
+            store = result['profile'].stores.first()
+            postReviewAnalysis(storeId=store.id, term=0)
+            postReviewAnalysis(storeId=store.id, term=1)
+
             return response
             
         except DomainError as e:
