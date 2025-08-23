@@ -6,10 +6,6 @@ app_name = "trend"
 urlpatterns = [
     # 트렌드 데이터로 AI 키워드 생성
     path("createtrends", TrendsToKeywordView.as_view(), name="create-from-trends"),
-    
-    # 특정 트렌드 조회
-    path("<int:trend_id>", GetTrendApi.as_view(), name="get-trend"),
-    
     # 사용자 직접 키워드 생성
     path("keywords", CreateKeywordView.as_view(), name="create-keyword"),
 ]

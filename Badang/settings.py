@@ -184,8 +184,8 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-MEDIA_ROOT = BASE_DIR / "media"     # 파일이 실제로 저장될 디렉터리
-MEDIA_URL = "/media/"               # 브라우저에서 접근할 URL prefix
+# MEDIA_ROOT = BASE_DIR / "media"     # 파일이 실제로 저장될 디렉터리
+# MEDIA_URL = "/media/"               # 브라우저에서 접근할 URL prefix
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -223,6 +223,18 @@ CORS_ALLOWED_ORIGINS = [
     "https://badangsw.netlify.app",
 ]
 
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        # 정적파일도 S3로 올릴 거면 아래 사용, 아니면 기존 Whitenoise 유지
+        # "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 
@@ -235,3 +247,8 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-northeast-2')
 AWS_S3_SIGNATURE_VERSION = 's3v4'
+
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = True
+AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
