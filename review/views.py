@@ -40,7 +40,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
         # 리스폰스 반환
         responseData = {
             "statusCode": 200,
-            "message": "프롬프트 검색 성공",
+            "message": "리뷰분석 조회 성공",
             "data": analysisData
         }
 
