@@ -124,10 +124,11 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
         is_user_made = request.query_params.get('isUserMade')
         is_liked = request.query_params.get('isLiked')
         page = request.query_params.get('page')
-        limit = request.query_params.get('limit', 9)
-
+        limit = request.query_params.get('limit', None)
+        
+        
         try:
-            limit = int(limit)
+            limit = int(limit) if limit not in (None, "") else 9
         
         except (ValueError, TypeError):
             return Response({
