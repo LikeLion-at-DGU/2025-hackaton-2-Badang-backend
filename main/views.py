@@ -37,8 +37,9 @@ class signupView(APIView):
             
             body = {
                 "message": "회원가입 성공",
-                "profileId": result["profile"].user_id,  # OneToOne PK면 user_id로 접근
-                "username": result["user"].username
+                "profileId": result["profile"].user_id,          
+                "username": result["profile"].profileName,       
+                "id": result["profile"].user.username            
             }
 
             response = Response(body, status=status.HTTP_201_CREATED)
