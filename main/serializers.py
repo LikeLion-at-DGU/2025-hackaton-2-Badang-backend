@@ -2,20 +2,26 @@ from rest_framework import serializers
 from django.db import transaction
 from .models import *
 from rest_framework.validators import UniqueValidator
+from django.contrib.auth import get_user_model
 
 
 
 class signupSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        max_length=150,
-        validators=[UniqueValidator(
-            queryset=User.objects.all(),
-            message="이미 사용 중인 아이디입니다."
-        )]
-    )
+    # 프론트 키(id)를 그대로 받되, 내부 키는 username으로 매핑
+    id = serializers.CharField(max_length=150, source='username')
     password = serializers.CharField(write_only=True)
     name = serializers.CharField(max_length=50)
     phoneNumber = serializers.CharField(max_length=15)
+
+    def validate_username(self, value):
+        UserModel = get_user_model()
+        normalized = (value or "").strip().lower()
+        if not normalized:
+            raise serializers.ValidationError("아이디는 필수입니다.")
+        # 케이스 무시 중복 체크
+        if UserModel.objects.filter(username__iexact=normalized).exists():
+            raise serializers.ValidationError("이미 사용 중인 아이디입니다.")
+        return normalized  # 정규화된 username을 서비스로 넘김
     
 class storeSerializerReq(serializers.Serializer):
     name = serializers.CharField()
