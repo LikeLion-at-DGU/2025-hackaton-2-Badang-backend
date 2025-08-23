@@ -1,49 +1,54 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.shortcuts import get_object_or_404, get_list_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from common.serializers import *
 from main.models import *
 from .models import *
 from review.services import getStoreId, postReviewAnalysis
+from django.contrib.auth import get_user_model
+from django.db import transaction, IntegrityError
 
 class DomainError(Exception):
     pass
 
+@transaction.atomic
 def profileCreate(username: str = "", password: str = "", name: str = "", phoneNumber: str = ""):
-    
-    
+    User = get_user_model()
+
+    # (선택) 입력 정리
+    username = (username or "").strip()
+    if not username or not password:
+        raise DomainError("아이디와 비밀번호는 필수입니다.")
+
     try:
-        with transaction.atomic():
-            # User 생성 (패스워드 해싱)
-            user = User.objects.create(
-                username=username,
-                password=make_password(password)  # 패스워드 해싱!
-            )
-            
-            # Profile 생성
-            profile = Profile.objects.create(
-                user=user,
-                profileName=name,
-                profilePhoneNumber=phoneNumber
-            )
-            
-            # JWT 토큰 생성
-            refresh = RefreshToken.for_user(user)
-            access_token = refresh.access_token
-            
-            return {
-                "profile": profile,
-                "tokens": {
-                    "access": str(access_token),
-                    "refresh": str(refresh)
-                }
-            }
-            
-    except Exception as e:
-        raise DomainError(f"회원가입 실패: {str(e)}")
+        # 1) User 생성 (create_user가 비밀번호 해싱까지 처리)
+        user = User.objects.create_user(username=username, password=password)
+    except IntegrityError:
+        # username unique 충돌(경쟁 상황 포함)
+        raise DomainError("이미 사용 중인 아이디입니다.")
+
+    
+    profile = Profile.objects.create(
+        user=user,
+        profileName=name,
+        profilePhoneNumber=phoneNumber
+    )
+
+    
+    refresh = RefreshToken.for_user(user)
+    accessToken = str(refresh.access_token)
+    refreshToken = str(refresh)
+
+    
+    return {
+        "profile": profile,
+        "tokens": {
+            "access": accessToken,
+            "refresh": refreshToken
+        }
+    }
 
 def storeCreate(name: str, address: str,user:Profile):
     
