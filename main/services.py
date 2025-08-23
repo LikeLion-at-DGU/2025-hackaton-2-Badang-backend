@@ -45,15 +45,14 @@ def profileCreate(username: str = "", password: str = "", name: str = "", phoneN
     except Exception as e:
         raise DomainError(f"회원가입 실패: {str(e)}")
 
-def storeCreate(name: str, address: str,user):
+def storeCreate(name: str, address: str,user:Profile):
     
     try:
         
-        profile = Profile.objects.get(user=user)
         res = getStoreId(name, address)
         
         store = Store.objects.create(
-            user=profile,
+            user=user,
             name=name,
             address=address,
             kakaoPlaceId=res.get("id"),
