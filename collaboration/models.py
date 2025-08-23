@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import F,Q
 from django.db.models.functions import Greatest, Least
 from main.models import *
 # Create your models here.
@@ -26,17 +25,4 @@ class Collaborate(models.Model):
     isAccepted = models.IntegerField(choices=Status.choices, default=Status.PENDING)
     
     requestCreatedAt = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        constraints = [
-            # 자기 자신 금지
-            models.CheckConstraint(
-                check=~models.Q(requestStore=models.F('responseStore')),
-                name='collab_diff_stores'
-            ),
-            # isAccepted는 0/1/2만 허용
-            models.CheckConstraint(
-                check=models.Q(isAccepted__in=[0,1,2]),
-                name='collab_status_012_only'
-            ),
-        ]
+
