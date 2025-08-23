@@ -14,9 +14,9 @@ urlpatterns = [
     path("", CollaborationPostView.as_view(), name = "create"),                        # POST
     path("search", CollaborationSearchListView.as_view(), name = "search"),                # POST
     path("accept", CollaborateDecisionView.as_view(),name= "accept"),                 # PATCH
-    path("response/<int:storeId>", ResponseCollaborateListView.as_view(), name ="response"), # GET
-    path("request/<int:storeId>", RequestCollaborateListView.as_view(),name = "request"),   # GET
-    path("active/<int:storeId>", ActiveCollaborationListView.as_view(), name = "active"),       # GET
+    path("response", ResponseCollaborateListView.as_view(), name ="response"), # GET
+    path("request", RequestCollaborateListView.as_view(),name = "request"),   # GET
+    path("active", ActiveCollaborationListView.as_view(), name = "active"),       # GET
     path("memo", CollaborationUpdateView.as_view(), name = "memo"),                    # PATCH (메모 수정)
     path("<int:collaborateId>", CollaborationDeleteView.as_view(),name= "delete"),   # DELETE
 ]
