@@ -5,7 +5,7 @@ from .models import *
 
 
 class signupSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    username = serializers.CharField()
     password = serializers.CharField()
     name = serializers.CharField()
     phoneNumber = serializers.CharField()

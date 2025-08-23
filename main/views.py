@@ -29,7 +29,7 @@ class signupView(APIView):
         
         try:
             result = profileCreate(
-                username=req.validated_data["id"],
+                username=req.validated_data["username"],
                 password=req.validated_data["password"],
                 name=req.validated_data["name"],
                 phoneNumber=req.validated_data["phoneNumber"]
@@ -110,9 +110,9 @@ class storeView(APIView):
             # 검증된 store 객체와 데이터를 서비스 함수에 전달합니다.
             result = storeUpdate(store=store, **req.validated_data)
             
-            storeId = result.id
-            postReviewAnalysis(storeId=storeId, term=0)
-            postReviewAnalysis(storeId=storeId, term=1)
+            # storeId = result.id
+            # postReviewAnalysis(storeId=storeId, term=0)
+            # postReviewAnalysis(storeId=storeId, term=1)
             
             return Response({
                 "message": "상세정보 등록 완료",
@@ -173,9 +173,9 @@ class loginView(APIView):
                 samesite='Lax'
             )
 
-            storeId = result['user'].stores.id
-            postReviewAnalysis(storeId=storeId, term=0)
-            postReviewAnalysis(storeId=storeId, term=1)
+            # storeId = result['user'].stores.id
+            # postReviewAnalysis(storeId=storeId, term=0)
+            # postReviewAnalysis(storeId=storeId, term=1)
 
             return response
             

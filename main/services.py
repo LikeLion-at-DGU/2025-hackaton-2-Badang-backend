@@ -7,7 +7,7 @@ from django.contrib.auth.hashers import make_password
 from common.serializers import *
 from main.models import *
 from .models import *
-from review.services import getStoreId
+from review.services import getStoreId, postReviewAnalysis
 
 class DomainError(Exception):
     pass
@@ -94,6 +94,9 @@ def storeUpdate(store:Store, **data):
             store.menus.all().delete()
             for menu_data in data['menu']:
                 Menu.objects.create(store=store, **menu_data)
+                
+        postReviewAnalysis(store.id, term=0) # 전체 기간 리뷰 분석 데이터 생성
+        postReviewAnalysis(store.id, term=1) # 한 달 리뷰 분석 데이터 생성
         
         return store
     

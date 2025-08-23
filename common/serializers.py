@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import *
 
-class CommonResponse(serializers.Serializer):
+class CommonResponseSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=255)
     status = serializers.IntegerField(default=400)
     

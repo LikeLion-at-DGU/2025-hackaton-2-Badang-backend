@@ -1,7 +1,7 @@
 from common.services.llm import run_llm
 import json
 
-def review_analysis(review_payload: dict) -> dict:
+def reviewAnalysisByAI(review_payload: dict) -> dict:
     # LLM을 사용하여 리뷰 분석
     
     system = """
