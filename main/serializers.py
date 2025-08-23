@@ -44,3 +44,10 @@ class storeUpdateSerializerReq(serializers.Serializer):
 class loginSerializer(serializers.Serializer):
     id = serializers.CharField()
     password = serializers.CharField(write_only=True) 
+    
+class storeReadSerializer(serializers.ModelSerializer):
+    ownerName = serializers.CharField(source='user.profileName', read_only=True) 
+    
+    class Meta:
+        model = Store
+        fields = "__all__"
