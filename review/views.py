@@ -4,9 +4,10 @@ from .serializers import StoreReviewResponseSerializer # 응답 포장용 시리
 from main.models import Store
 from .services import *
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from common.serializers import CommonResponseSerializer
 
+# 리뷰 생성 로직 main으로 이동. 리뷰 데이터를 읽는 로직만 남김.
 class ReviewAnalysisViewSet(viewsets.ViewSet):
-    
     permission_classes = [IsAuthenticated]
     
     def list(self, request):
@@ -33,15 +34,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # OpenAI 활용 리뷰 분석 생성 -> 시리얼라이저로 옮길 예정
-        analysisData = postReviewAnalysis(storeId, term)
-
-        # 에러 파싱
-        if analysisData is None:
-            return Response({
-                "error": "NotFound",
-                "message": "해당 가게를 찾을 수 없습니다.",
-                "statusCode": 404
-            }, status=status.HTTP_404_NOT_FOUND)
+        analysisData = getReviewAnalysis(storeId, term)
 
         # 리스폰스 반환
         responseData = {
@@ -50,6 +43,6 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
             "data": analysisData
         }
 
-        return Response(responseData, status=status.HTTP_200_OK)
-    
+        return CommonResponseSerializer(responseData)
+
     # retrieve, create 등 다른 메서드 필요 시 추가

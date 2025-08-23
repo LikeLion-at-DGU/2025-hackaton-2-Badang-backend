@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from .models import Review, Reviewer, ReviewAnalysis
 from main.models import Store
-from .reviewAnalisys import review_analysis
+from .reviewAnalisys import reviewAnalysisByAI
 from common.services.llm import run_llm
 from .getReview import getKakaoReview
 env = environ.Env()
@@ -30,13 +30,13 @@ def getStoreId(storeName, storeAddress):
         print(f"매장 정보를 찾을 수 없습니다: {query}")
         return None # 또는 예외를 발생시킵니다.
 
-    first_document = data["documents"][0]
+    firstDocument = data["documents"][0]
     
     return {
-        "id": first_document.get("id"),
-        "placePhone": first_document.get("phone"),
-        "placeLatitude": first_document.get("y"),
-        "placeLongitude": first_document.get("x"),
+        "id": firstDocument.get("id"),
+        "placePhone": firstDocument.get("phone"),
+        "placeLatitude": firstDocument.get("y"),
+        "placeLongitude": firstDocument.get("x"),
     }
 
 def updateReviewData(store: Store, reviewData: list):
@@ -73,64 +73,63 @@ def postReviewAnalysis(storeId: int, term: int):
     if scrapedReviews:
         updateReviewData(store, scrapedReviews)
 
-    # 'term' 값에 따라 리뷰 필터링
-    endDate = timezone.now()
-    reviews_qs = store.reviews.all()
+    # term에 따라 리뷰 필터링
+    date = timezone.now()
+    reviewsQuerySet = store.reviews.all()
     
     if term == 1: # 한 달
-        startDate = endDate - timedelta(days=30)
-        reviews_qs = reviews_qs.filter(reviewDate__range=[startDate, endDate])
-    elif term == 2: # 일주일
-        startDate = endDate - timedelta(days=7)
-        reviews_qs = reviews_qs.filter(reviewDate__range=[startDate, endDate])
-    
-    if not reviews_qs.exists():
+        reviewsQuerySet = reviewsQuerySet.filter(reviewDate__gte=date - timedelta(days=30))
+
+    elif term == 2: # 일주일, 유저 결제 여부 판별 필요?
+        reviewsQuerySet = reviewsQuerySet.filter(reviewDate__gte=date - timedelta(days=7))
+
+    if not reviewsQuerySet.exists():
         return {"message": "해당 기간에 분석할 리뷰가 없습니다."}
 
-    # 필터링된 리뷰로 LLM 페이로드 생성 (버그 수정)
-    review_payload = [
+    # 필터링된 리뷰로 LLM 페이로드 생성 
+    reviewPayload = [
         {
-            "reviewContent": r.reviewContent,
-            "reviewRate": r.reviewRate,
-            "reviewDate": r.reviewDate.strftime("%Y-%m-%d"),
-        } for r in reviews_qs
+            "reviewContent": review.reviewContent,
+            "reviewRate": review.reviewRate,
+            "reviewDate": review.reviewDate.strftime("%Y-%m-%d"),
+        } for review in reviewsQuerySet
     ]
-    payload = {"storeName": store.name, "reviews": review_payload}
+    payload = {"storeName": store.name, "reviews": reviewPayload}
 
     # LLM 분석 실행
     try:
-        analysisResult = review_analysis(payload) 
-        
+        analysisResult = reviewAnalysisByAI(payload)
+
         # 'analysisKeyword'가 '리뷰 분석 실패'와 같은 기본값인지 확인하여
         # 성공 여부를 판단하고 DB에 저장
-        is_success = analysisResult.get('analysisKeyword') != '리뷰 분석 실패'
+        isSuccess = analysisResult.get('analysisKeyword') != '리뷰 분석 실패'
 
-        if is_success:
+        if isSuccess:
             # get() 메서드를 사용하여 안전하게 키에 접근
-            percentage_data = analysisResult.get('percentage', {})
+            percentageData = analysisResult.get('percentage', {})
             
             # 성공 시에만 DB에 저장하는 로직 실행
-            review_analysis_obj, created = ReviewAnalysis.objects.get_or_create(
+            reviewAnalysisResult, created = ReviewAnalysis.objects.get_or_create(
                 storeId=store,
                 defaults={
                     'analysisKeyword': analysisResult.get('analysisKeyword', '분석 실패'),
                     'goodPoint': analysisResult.get('goodPoint', '분석 실패'),
                     'badPoint': analysisResult.get('badPoint', '분석 실패'),
-                    'goodPercentage': percentage_data.get('goodPercentage', 0),
-                    'badPercentage': percentage_data.get('badPercentage', 0),
-                    'middlePercentage': percentage_data.get('middlePercentage', 0),
+                    'goodPercentage': percentageData.get('goodPercentage', 0),
+                    'badPercentage': percentageData.get('badPercentage', 0),
+                    'middlePercentage': percentageData.get('middlePercentage', 0),
                 }
             )
 
             if not created:
                 # 이미 객체가 있다면 .get()을 사용하여 업데이트
-                review_analysis_obj.analysisKeyword = analysisResult.get('analysisKeyword', '분석 실패')
-                review_analysis_obj.goodPoint = analysisResult.get('goodPoint', '분석 실패')
-                review_analysis_obj.badPoint = analysisResult.get('badPoint', '분석 실패')
-                review_analysis_obj.goodPercentage = percentage_data.get('goodPercentage', 0)
-                review_analysis_obj.badPercentage = percentage_data.get('badPercentage', 0)
-                review_analysis_obj.middlePercentage = percentage_data.get('middlePercentage', 0)
-                review_analysis_obj.save()
+                reviewAnalysisResult.analysisKeyword = analysisResult.get('analysisKeyword', '분석 실패')
+                reviewAnalysisResult.goodPoint = analysisResult.get('goodPoint', '분석 실패')
+                reviewAnalysisResult.badPoint = analysisResult.get('badPoint', '분석 실패')
+                reviewAnalysisResult.goodPercentage = percentageData.get('goodPercentage', 0)
+                reviewAnalysisResult.badPercentage = percentageData.get('badPercentage', 0)
+                reviewAnalysisResult.middlePercentage = percentageData.get('middlePercentage', 0)
+                reviewAnalysisResult.save()
 
             return {"message": "리뷰 분석 및 저장 성공", "data": analysisResult}
         else:

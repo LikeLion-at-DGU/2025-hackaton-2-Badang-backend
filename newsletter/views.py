@@ -178,18 +178,18 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
         }, status=status.HTTP_200_OK)
 
 
-    @action(detail=True, methods=['POST']) 
-    def create(request, storeId):# 뉴스레터 생성 테스트
-        if request.method == 'POST':
-            try:
-                new_newsletter = createNewsletter(storeId=storeId)
+    # @action(detail=True, methods=['POST']) 
+    # def create(request, storeId):# 뉴스레터 생성 테스트
+    #     if request.method == 'POST':
+    #         try:
+    #             new_newsletter = createNewsletter(storeId=storeId)
 
-                return Response({
-                    "message": "뉴스레터가 성공적으로 생성되었습니다.",
-                    "data": NewsletterSerializer(new_newsletter).data
-                }, status=status.HTTP_201_CREATED)
+    #             return Response({
+    #                 "message": "뉴스레터가 성공적으로 생성되었습니다.",
+    #                 "data": NewsletterSerializer(new_newsletter).data
+    #             }, status=status.HTTP_201_CREATED)
 
-            except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    #         except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
+    #             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    #     return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
