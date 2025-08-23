@@ -10,7 +10,7 @@ from django.forms.models import model_to_dict
 def createNewsletter(storeId: int) -> Newsletter:
     try:
         store = Store.objects.get(pk=storeId)
-        reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
+        reviewAnalysis = ReviewAnalysis.objects.filter(storeId=store).first()
         keyword = Keyword.objects.latest('keywordCreatedAt') # <-- 이 부분이 중요
 
         if not keyword:
@@ -54,8 +54,8 @@ def getNewsletter(newsletterId: int) -> Newsletter:
 def createNewsletterByUser(storeId: int, keyword) -> Newsletter:
     try:
         store = Store.objects.get(pk=storeId)
-        reviewAnalysis = ReviewAnalysis.objects.get(storeId=store)
-        
+        reviewAnalysis = ReviewAnalysis.objects.filter(storeId=store).first()
+
     except Store.DoesNotExist:
         raise ValueError("가게를 찾을 수 없습니다.")
     except ReviewAnalysis.DoesNotExist:
