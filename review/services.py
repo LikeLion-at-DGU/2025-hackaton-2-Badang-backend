@@ -7,8 +7,6 @@ from main.models import Store
 from .reviewAnalisys import reviewAnalysisByAI
 from common.services.llm import run_llm
 from .getReview import getKakaoReview
-from .services import getReviewAnalysis
-
 env = environ.Env()
     
 def getStoreId(storeName, storeAddress):
