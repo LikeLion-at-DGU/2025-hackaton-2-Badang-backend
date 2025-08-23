@@ -29,7 +29,7 @@ class signupView(APIView):
         
         try:
             result = profileCreate(
-                username=req.validated_data["id"],
+                username=req.validated_data["username"],
                 password=req.validated_data["password"],
                 name=req.validated_data["name"],
                 phoneNumber=req.validated_data["phoneNumber"]
