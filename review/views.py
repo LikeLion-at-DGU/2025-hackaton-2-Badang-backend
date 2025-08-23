@@ -5,6 +5,7 @@ from main.models import Store
 from .services import *
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from common.serializers import CommonResponseSerializer
+from .selectors import getReviewAnalysis
 
 # 리뷰 생성 로직 main으로 이동. 리뷰 데이터를 읽는 로직만 남김.
 class ReviewAnalysisViewSet(viewsets.ViewSet):
