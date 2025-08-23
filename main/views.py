@@ -153,6 +153,9 @@ class loginView(APIView):
             
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
+            
+            postReviewAnalysis(stores_qs.first().id, term=0)
+            postReviewAnalysis(stores_qs.first().id, term=1)
 
             response = Response({
                 "message": "로그인 성공",

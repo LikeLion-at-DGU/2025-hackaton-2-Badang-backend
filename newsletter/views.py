@@ -117,6 +117,7 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=False, methods=['get'])
     def search(self, request, *args, **kwargs):
         query = request.query_params.get('query')
         keyword = request.query_params.get('keyword')
@@ -178,18 +179,21 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
         }, status=status.HTTP_200_OK)
 
 
-    # @action(detail=True, methods=['POST']) 
-    # def create(request, storeId):# 뉴스레터 생성 테스트
-    #     if request.method == 'POST':
-    #         try:
-    #             new_newsletter = createNewsletter(storeId=storeId)
+    @action(detail=True, methods=['post'])
+    def generate(self, request, pk=None):
+        # detail=True 이므로 URL의 {pk}를 storeId로 사용합니다.
+        storeId = pk
 
-    #             return Response({
-    #                 "message": "뉴스레터가 성공적으로 생성되었습니다.",
-    #                 "data": NewsletterSerializer(new_newsletter).data
-    #             }, status=status.HTTP_201_CREATED)
+        if request.method != 'POST':
+            return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    #         except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
-    #             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            new_newsletter = createNewsletter(storeId=storeId)
 
-    #     return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response({
+                "message": "뉴스레터가 성공적으로 생성되었습니다.",
+                "data": NewsletterSerializer(new_newsletter, context={'request': request}).data
+            }, status=status.HTTP_201_CREATED)
+
+        except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
