@@ -21,59 +21,67 @@ class DomainError(Exception):
 
 class TrendsToKeywordView(APIView):
     def post(self, request):
-        
         req = TrendInputReq(data=request.data)
         req.is_valid(raise_exception=True)
 
-        trend = saveSingleKeywordToDB(req.validated_data["trends"])
-        out = TrendRes(trend, context={"request": request})
-        return Response(out.data, status=status.HTTP_201_CREATED)
+        trend, keywords = saveKeywordsFromTrends(req.validated_data["trends"])
 
+        trendOut = TrendRes(trend, context={"request": request}).data
+        keywordOut = KeywordRes(keywords, many=True).data  # 리스트 직렬화
+
+        return Response(
+            {
+                "message": "트렌드와 키워드가 생성되었습니다.",
+                "statusCode": 201,
+                "data": {
+                    "trend": trendOut,
+                    "keywords": keywordOut,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+        
 class CreateKeywordView(APIView):
-    
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
-        
-        user = request.user.profile
-        me = user.stores.first()
-        
-        if me is None:
-            raise DomainError("request 를 보낸 유저에게는 가게가 없습니다.")
-        
-        req = KeywordsInputReq(data = request.data)
+        try:
+            user = request.user.profile
+            me = user.stores.first()
+            if me is None:
+                raise DomainError("request 를 보낸 유저에게는 가게가 없습니다.")
+        except DomainError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        req = KeywordsInputReq(data=request.data)
         req.is_valid(raise_exception=True)
-        
         keyword = req.validated_data["keyword"]
-        
-        try: 
-            res = keywordSaveByUserSimple(keyword, me)
+
+        try:
             
+            kw = keywordSaveByUserSync(keyword, me)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
+        except Exception:
             return Response({"detail": "키워드 생성에 실패했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+
         try:
-            out = KeywordRes(res)  # 실제 생성된 키워드 정보 반환
-            print(keyword)
-            
-            news = createNewsletterByUser(me.id, res)
-            serializer = NewsletterSerializer(news, context={'request': request})
+            news = createNewsletterByUser(me.id, kw)  # kw는 Keyword 인스턴스
+            kwData = KeywordRes(kw).data
+            newsData = NewsletterSerializer(news, context={'request': request}).data
 
-            responseData = {
-                "message": "뉴스레터 상세 정보를 성공적으로 조회하였습니다.",
+            return Response({
+                "message": "키워드와 뉴스레터를 생성했습니다.",
                 "statusCode": 200,
-                "data": serializer.data
-            }
+                "data": {
+                    "keyword": kwData,       # 여기의 keywordImageUrl은 serializer에서 URL로 변환됨
+                    "newsletter": newsData   # thumbnail은 별 기능이라 그대로 유지
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({"detail": "뉴스레터 생성에 실패했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            return Response(responseData, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            print(keyword)
-            
-            return Response({"detail":"뉴스레터 생성에 실패했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 class GetTrendApi(APIView):
     def get(self, request, trend_id):
         trend = get_object_or_404(Trend, id=trend_id)

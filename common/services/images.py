@@ -15,7 +15,7 @@ def _promptFor(keyword: str) -> str:
 def _hash(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
-def generateLocalImageForKeyword(keyword: str, size: str = "1792x1024") -> str:
+def generateImageForKeyword(keyword: str, size: str = "1792x1024") -> dict:
     
     # 사이즈 검증
     validSizes = {
@@ -40,7 +40,7 @@ def generateLocalImageForKeyword(keyword: str, size: str = "1792x1024") -> str:
     # 이미 존재하는 파일이면 바로 반환
     if default_storage.exists(relPath):
         logger.info(f"Using cached image for keyword: {keyword}")
-        return relPath
+        return {"path": relPath, "url": default_storage.url(relPath)} 
 
     try:
         logger.info(f"Generating image for keyword: {keyword} with {model}")
@@ -62,7 +62,8 @@ def generateLocalImageForKeyword(keyword: str, size: str = "1792x1024") -> str:
         savedPath = default_storage.save(relPath, ContentFile(rawData))
         logger.info(f"Image saved successfully: {savedPath}")
         
-        return relPath
+        fileUrl = default_storage.url(savedPath)
+        return {"path": savedPath, "url": fileUrl}
         
     except Exception as e:
         logger.error(f"Failed to generate image for keyword '{keyword}': {str(e)}")
