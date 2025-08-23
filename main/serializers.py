@@ -1,14 +1,21 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import *
+from rest_framework.validators import UniqueValidator
 
 
 
 class signupSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
-    name = serializers.CharField()
-    phoneNumber = serializers.CharField()
+    username = serializers.CharField(
+        max_length=150,
+        validators=[UniqueValidator(
+            queryset=User.objects.all(),
+            message="이미 사용 중인 아이디입니다."
+        )]
+    )
+    password = serializers.CharField(write_only=True)
+    name = serializers.CharField(max_length=50)
+    phoneNumber = serializers.CharField(max_length=15)
     
 class storeSerializerReq(serializers.Serializer):
     name = serializers.CharField()

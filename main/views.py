@@ -35,10 +35,13 @@ class signupView(APIView):
                 phoneNumber=req.validated_data["phoneNumber"]
             )
             
-            response = Response({
-                'message': '회원가입 성공',
-                'profileId': result['profile'].user_id,
-            }, status=status.HTTP_201_CREATED)
+            body = {
+                "message": "회원가입 성공",
+                "profileId": result["profile"].user_id,  # OneToOne PK면 user_id로 접근
+                "username": result["user"].username
+            }
+
+            response = Response(body, status=status.HTTP_201_CREATED)
             
             # secure=True로 일관성 유지 (HTTPS 환경에서만 쿠키 전송)
             response.set_cookie(
@@ -60,6 +63,9 @@ class signupView(APIView):
             
         except DomainError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # 예상 밖 서버 오류 -> 500
+            return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class storeView(APIView):
     permission_classes = [IsAuthenticated]
