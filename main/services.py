@@ -11,8 +11,10 @@ from django.contrib.auth import get_user_model
 from django.db import transaction, IntegrityError
 
 class DomainError(Exception):
-    pass
-
+    def __init__(self, message, httpStatus=400):
+        super().__init__(message)
+        self.httpStatus = httpStatus
+        
 @transaction.atomic
 def profileCreate(username: str = "", password: str = "", name: str = "", phoneNumber: str = ""):
     User = get_user_model()
@@ -50,26 +52,45 @@ def profileCreate(username: str = "", password: str = "", name: str = "", phoneN
         }
     }
 
-def storeCreate(name: str, address: str,user:Profile):
-    
+
+def storeCreate(name: str, address: str, user: Profile):
+    res = getStoreId(name, address)
+    if not res or not res.get("id"):
+        raise DomainError("카카오 장소를 찾지 못했습니다.", httpStatus=400)
+
+    kakaoId = res["id"]
+
     try:
-        
-        res = getStoreId(name, address)
-        
-        store = Store.objects.create(
-            user=user,
-            name=name,
-            address=address,
-            kakaoPlaceId=res.get("id"),
-            latitude=res.get("placeLatitude"),
-            longitude=res.get("placeLongitude"),
-            storeNumber=res.get("placePhone")
+        store, created = Store.objects.get_or_create(
+            kakaoPlaceId=kakaoId,
+            defaults={
+                "user": user,
+                "name": name,
+                "address": address,
+                "latitude": res.get("placeLatitude"),
+                "longitude": res.get("placeLongitude"),
+                "storeNumber": res.get("placePhone"),
+            },
         )
-        
+
+        if not created:
+            # 이미 존재하는 스토어
+            if store.user_id != user.id:
+                # 설계에 따라: 다른 유저가 선점한 경우 막기
+                raise DomainError("이미 다른 사용자에 의해 등록된 매장입니다.", httpStatus=409)
+            # 같은 유저가 다시 등록하면 업데이트만 하고 반환(원치 않으면 그냥 반환만 해도 됨)
+            store.name = name
+            store.address = address
+            store.latitude = res.get("placeLatitude")
+            store.longitude = res.get("placeLongitude")
+            store.storeNumber = res.get("placePhone")
+            store.save(update_fields=["name", "address", "latitude", "longitude", "storeNumber"])
+
         return store
-        
-    except Exception as e:
-        raise DomainError(f"매장 생성 실패: {str(e)}")
+
+    except IntegrityError:
+        # 극단적인 동시성 케이스(두 요청이 동시에 들어온 경우 등)
+        raise DomainError("이미 등록된 kakaoPlaceId 입니다.", httpStatus=409)
 
 def storeUpdate(store:Store, **data):
     
