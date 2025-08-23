@@ -229,3 +229,16 @@ class tokenRefreshView(APIView):
             
         except Exception as e:
             return Response({'error': '유효하지 않은 토큰입니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class meView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = request.user.profile
+        stores = Store.objects.filter(user=profile)
+        return Response({
+            "id": request.user.username,
+            "profileId": profile.user_id,
+            "username": profile.profileName,
+            "stores": storeReadSerializer(stores, many=True).data
+        }, status=status.HTTP_200_OK)

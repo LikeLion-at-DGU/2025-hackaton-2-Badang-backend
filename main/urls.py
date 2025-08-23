@@ -17,6 +17,7 @@ urlpatterns = [
     path('login', loginView.as_view(), name='login'),           # 로그인
     path('logout', logoutView.as_view(), name='logout'),         # 로그아웃
     path('token', tokenRefreshView.as_view(), name='token_refresh'), # 토큰 갱신
+    path('me', meView.as_view(), name='me'),
 
     path('stores', storeView.as_view(), name='store'), 
 ]

@@ -134,13 +134,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        #"rest_framework_simplejwt.authentication.JWTAuthentication",
-        #나중 실제 배포시 켜두기
-        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        "auth.authentication.CookieJwtAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        #"rest_framework.permissions.IsAuthenticatedOrReadOnly",
-        #"rest_framework.permissions.AllowAny",
         'rest_framework.permissions.IsAuthenticated',
     ),
     "DEFAULT_FILTER_BACKENDS": (
