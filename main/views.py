@@ -45,15 +45,15 @@ class signupView(APIView):
                 'access_token', 
                 result['tokens']['access'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             response.set_cookie(
                 'refresh_token', 
                 result['tokens']['refresh'],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
 
             return response
@@ -153,7 +153,9 @@ class loginView(APIView):
             # 프로필(혹은 프로필에 연결된 스토어) 기준으로 조회
             profile = result["user"].profile
             stores_qs = Store.objects.filter(user=profile)
-            stores = loginSerializer(stores_qs, many=True).data
+            
+            stores = storeReadSerializer(stores_qs, many=True).data
+            
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
 
@@ -167,15 +169,15 @@ class loginView(APIView):
                 "access_token",
                 result["tokens"]["access"],
                 httponly=True,
-                secure=False,   # 배포는 True
-                samesite="Lax"  # 크로스사이트라면 "None"
+                secure=True,
+                samesite='None'  # 크로스사이트라면 "None"
             )
             response.set_cookie(
                 "refresh_token",
                 result["tokens"]["refresh"],
                 httponly=True,
-                secure=False,   # 배포는 True
-                samesite="Lax"  # 크로스사이트라면 "None"
+                secure=True,
+                samesite='None'  # 크로스사이트라면 "None"
             )
             return response
 
@@ -224,8 +226,8 @@ class tokenRefreshView(APIView):
                 'access_token',
                 new_access_token,
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=True,
+                samesite='None'
             )
             
             return response
