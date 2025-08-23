@@ -34,7 +34,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
                 "statusCode": 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # OpenAI 활용 리뷰 분석 생성 -> 시리얼라이저로 옮길 예정
+        # 로그인/회원가입 시 생성된 리뷰 분석 데이터 조회.
         analysisData = getReviewAnalysis(storeId, term)
 
         # 리스폰스 반환
@@ -44,6 +44,5 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
             "data": analysisData
         }
 
-        return CommonResponseSerializer(responseData)
-
+        return Response(responseData, status=status.HTTP_200_OK)
     # retrieve, create 등 다른 메서드 필요 시 추가

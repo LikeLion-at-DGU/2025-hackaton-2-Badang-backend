@@ -6,19 +6,24 @@ from review.models import ReviewAnalysis
 from main.models import Store
 
 
-def getReviewAnalysis(analysis: ReviewAnalysis) -> Dict:
-
-    # model_to_dict is convenient but may include related objects; pick explicit fields.
+def getReviewAnalysis(storeId: int, term: int) -> Dict:
+    try:
+        analysis = ReviewAnalysis.objects.get(store_id=storeId, term=term) # 스토어 아이디 / term 기반 리뷰 분석 조회
+    except ReviewAnalysis.DoesNotExist:
+        return {
+            "error": "Not Found",
+            "message": f"Store ID {storeId}에 대한 분석 결과가 없습니다.",
+            "status": 404
+        }
     return {
         'id': analysis.id,
-        'store_id': analysis.store_id if hasattr(analysis, 'store_id') else getattr(analysis.store, 'id', None),
-        'summary': getattr(analysis, 'summary', ''),
-        'score': getattr(analysis, 'score', None),
-        'topics': getattr(analysis, 'topics', []),
-        'sentiment': getattr(analysis, 'sentiment', None),
-        'updated_at': getattr(analysis, 'updated_at', None),
+        'store_id': analysis.store.id, 
+        'summary': analysis.summary,
+        'score': analysis.score,
+        'topics': analysis.topics,
+        'sentiment': analysis.sentiment,
+        'updated_at': analysis.updated_at,
     }
-
 
 def get_analysis_by_store(store_id: int) -> Optional[Dict]:
     """Return a single analysis dict for the given store_id, or None if not found."""
