@@ -29,7 +29,7 @@ class signupView(APIView):
         
         try:
             result = profileCreate(
-                username=req.validated_data["username"],
+                username=req.validated_data["id"],
                 password=req.validated_data["password"],
                 name=req.validated_data["name"],
                 phoneNumber=req.validated_data["phoneNumber"]
@@ -138,49 +138,49 @@ class storeView(APIView):
 class loginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    
+
     def post(self, request):
-        print("로그인 뷰에 요청이 성공적으로 도착했습니다.")
         req = loginSerializer(data=request.data)
         req.is_valid(raise_exception=True)
-        
+
         try:
             result = profileLogin(
                 username=req.validated_data["id"],
                 password=req.validated_data["password"]
             )
-            
-            store = Store.objects.filter(user=result)
-            
+            # result 예시: {"user": <User>, "profile": <Profile>, "tokens": {...}}
+
+            # 프로필(혹은 프로필에 연결된 스토어) 기준으로 조회
+            profile = result["user"].profile
+            stores_qs = Store.objects.filter(user=profile)
+            stores = loginSerializer(stores_qs, many=True).data
+            # 또는 최소 필드만
+            # stores = list(stores_qs.values("id", "name", "address"))
+
             response = Response({
-                'message': '로그인 성공',
-                "store":store
+                "message": "로그인 성공",
+                "stores": stores
             }, status=status.HTTP_200_OK)
-            
-            # secure=True로 통일하여 보안 강화
+
+            # 쿠키 설정 (개발 중 http라면 secure=False 가능, 배포는 꼭 True+None)
             response.set_cookie(
-                'access_token', 
-                result['tokens']['access'],
+                "access_token",
+                result["tokens"]["access"],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=False,   # 배포는 True
+                samesite="Lax"  # 크로스사이트라면 "None"
             )
             response.set_cookie(
-                'refresh_token', 
-                result['tokens']['refresh'],
+                "refresh_token",
+                result["tokens"]["refresh"],
                 httponly=True,
-                secure=False,
-                samesite='Lax'
+                secure=False,   # 배포는 True
+                samesite="Lax"  # 크로스사이트라면 "None"
             )
-
-            # storeId = result['user'].stores.id
-            # postReviewAnalysis(storeId=storeId, term=0)
-            # postReviewAnalysis(storeId=storeId, term=1)
-
             return response
-            
+
         except DomainError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class logoutView(APIView):
