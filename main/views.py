@@ -14,10 +14,6 @@ from .selectors import *
 from review.services import postReviewAnalysis
 
 
-# DomainError는 서비스 계층의 비즈니스 로직 오류에만 사용하도록 범위를 좁힙니다.
-class DomainError(Exception):
-    pass
-
 
 class signupView(APIView):
     permission_classes= [AllowAny]
@@ -63,7 +59,7 @@ class signupView(APIView):
             return response
             
         except DomainError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             # 예상 밖 서버 오류 -> 500
             return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -98,7 +94,7 @@ class storeView(APIView):
             
             
         except DomainError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     
     def patch(self, request):
@@ -124,21 +120,13 @@ class storeView(APIView):
             return Response({
                 "message": "상세정보 등록 완료",
                 "statusCode": "200",
-                "data": { 
-                    "id": result.id,
-                    "name": result.name,
-                    "type":result.type,
-                    "category":result.category,
-                    "visitor":result.visitor,
-                    "content":result.content,
-                    "isWillingCollaborate":result.isWillingCollaborate
-                }
+                "data": storeReadSerializer(result).data,
             }, status=status.HTTP_200_OK)
             
             
         
         except DomainError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -211,7 +199,7 @@ class logoutView(APIView):
             return response
             
         except DomainError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class tokenRefreshView(APIView):
