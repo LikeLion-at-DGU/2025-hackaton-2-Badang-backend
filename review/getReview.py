@@ -1,7 +1,6 @@
-import time
+import time, tempfile, shutil
 from datetime import datetime
 from typing import List, Dict, Any
-import tempfile, shutil
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -15,76 +14,65 @@ from bs4 import BeautifulSoup
 
 def _buildChromeOptions() -> webdriver.ChromeOptions:
     opts = webdriver.ChromeOptions()
-    # 헤드리스 신규 엔진 + 서버 안정화 옵션
     opts.add_argument("--headless=new")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--window-size=1280,800")
-    # UA 지정(봇 차단 회피용이 아니라 안정적 렌더링용)
+    opts.add_argument("--remote-debugging-port=0")  # 포트 자동 할당(충돌 방지)
+    # DOM 전부 기다리지 않고 DOMContentLoaded 수준에서 진행 → 전체 시간 단축
+    opts.page_load_strategy = "eager"
+    # 선택: UA 고정이 필요하면 유지
     opts.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     )
-    # 불필요한 확장 비활성화
+    # 자동화 플래그 감추기(안정화 목적)
     opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     opts.add_experimental_option("useAutomationExtension", False)
-    opts.add_argument("--remote-debugging-port=0")
     return opts
 
 
 def _parseKakaoDate(raw: str) -> datetime:
-    """
-    카카오맵 리뷰 날짜 포맷이 '2025.08.20.' or '어제', '방금 전' 등으로 섞일 수 있어
-    가장 흔한 케이스만 우선 처리하고, 실패 시 now 반환.
-    """
     if not raw:
         return datetime.now()
     raw = raw.strip()
     try:
-        # 기본 포맷: 2025.08.20.
         return datetime.strptime(raw, "%Y.%m.%d.")
     except Exception:
-        # 간단한 휴리스틱
-        if "방금" in raw:
-            return datetime.now()
-        if "분 전" in raw:
-            return datetime.now()
-        if "시간 전" in raw:
-            return datetime.now()
-        if "어제" in raw:
-            return datetime.now()
         return datetime.now()
 
 
-def getKakaoReview(kakaoPlaceId: str, maxCount: int = 50) -> List[Dict[str, Any]]:
+def getKakaoReview(kakaoPlaceId: str, maxCount: int = 20) -> List[Dict[str, Any]]:
     """
-    카카오맵 place 페이지(https://place.map.kakao.com/{id})에서 리뷰 스크래핑.
-    반환: [{"reviewerName": "...", "content": "...", "rate": 5, "date": datetime}, ...]
+    카카오맵 place 페이지에서 리뷰 스크래핑.
+    반환: [{"reviewerName": str, "content": str, "rate": int, "date": datetime}, ...]
     """
     url = f"https://place.map.kakao.com/{kakaoPlaceId}"
-    options = _buildChromeOptions()
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
 
+    # 실행 시간 상한 & 스크롤 상한
+    startAt = time.monotonic()
+    timeBudget = 25.0       # 함수 전체 25초 이내로 컷
+    scrollLimit = 15        # 최대 스크롤 시도
+
+    # 요청마다 고유 프로필/캐시 디렉터리(동시 실행 충돌 방지)
     tmpDir = tempfile.mkdtemp(prefix="chrome-")
+    options = _buildChromeOptions()
     options.add_argument(f"--user-data-dir={tmpDir}")
-    options.add_argument(f"--data-path={tmpDir}/data")
     options.add_argument(f"--disk-cache-dir={tmpDir}/cache")
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-    
+
     scrapedReviews: List[Dict[str, Any]] = []
 
     try:
-        driver.set_page_load_timeout(25)
+        driver.set_page_load_timeout(20)
         driver.get(url)
 
         wait = WebDriverWait(driver, 20)
 
-        # ★ 카카오 place는 종종 iframe으로 실제 내용이 뜸 (entryIframe 또는 webapp 내부 프레임)
+        # 종종 iframe에 실제 콘텐츠가 있음
         try:
             iframe = wait.until(
                 EC.presence_of_element_located(
@@ -93,11 +81,9 @@ def getKakaoReview(kakaoPlaceId: str, maxCount: int = 50) -> List[Dict[str, Any]
             )
             driver.switch_to.frame(iframe)
         except TimeoutException:
-            # 프레임이 없는 구조일 수도 있으니 패스
             pass
 
-        # '후기' 탭이 클릭 가능한 상태까지 대기 후 클릭
-        # (텍스트 기반 XPATH는 변경에 취약 → data-tab 혹은 role 기반으로 먼저 시도, 안 되면 텍스트 폴백)
+        # 후기 탭 클릭
         try:
             reviewTab = wait.until(
                 EC.element_to_be_clickable(
@@ -105,89 +91,74 @@ def getKakaoReview(kakaoPlaceId: str, maxCount: int = 50) -> List[Dict[str, Any]
                 )
             )
         except TimeoutException:
-            reviewTab = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//a[contains(., '후기')]"))
-            )
-
+            reviewTab = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(., '후기')]")))
         driver.execute_script("arguments[0].click();", reviewTab)
 
-        # 리뷰 리스트 컨테이너 대기
+        # 리뷰 컨테이너 대기
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "ul.list_review")))
 
-        # 무한 스크롤/더보기 처리
-        # 1) 스크롤로 로드 시도
-        # 2) 멈추면 '더보기' 버튼 클릭 시도
+        # 로딩 루프
         loadedCount = 0
         sameCountHit = 0
+        scrollTry = 0
+
         while True:
-            # 현재까지 파싱해 본 개수
-            html = driver.page_source
-            soup = BeautifulSoup(html, "html.parser")
+            # 시간/개수/시도 상한 체크
+            if time.monotonic() - startAt > timeBudget:
+                break
+            if loadedCount >= maxCount:
+                break
+            if scrollTry >= scrollLimit:
+                break
+
+            soup = BeautifulSoup(driver.page_source, "html.parser")
             items = soup.select("ul.list_review > li")
+
             if len(items) > loadedCount:
                 loadedCount = len(items)
                 sameCountHit = 0
             else:
                 sameCountHit += 1
 
-            if loadedCount >= maxCount:
-                break
-
-            # 스크롤 다운
+            # 스크롤
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(1.2)
+            scrollTry += 1
+            time.sleep(0.8)
 
-            # '더보기' 버튼 폴백
-            if sameCountHit >= 2:  # 두 번 연속 늘지 않으면 더보기 시도
+            # 더보기 버튼 폴백
+            if sameCountHit >= 2:
                 try:
                     moreBtn = driver.find_element(By.CSS_SELECTOR, "a.link_more, button.link_more")
                     driver.execute_script("arguments[0].click();", moreBtn)
-                    time.sleep(1.2)
+                    time.sleep(0.8)
                     sameCountHit = 0
                 except NoSuchElementException:
                     break
-        
+
         # 최종 파싱
-        html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(driver.page_source, "html.parser")
         reviewList = soup.select("ul.list_review > li")
 
         for li in reviewList[:maxCount]:
-            reviewerName = (
-                li.select_one("span.name_user").get_text(strip=True)
-                if li.select_one("span.name_user")
-                else "익명"
-            )
-            content = (
-                li.select_one("p.desc_review").get_text(strip=True)
-                if li.select_one("p.desc_review")
-                else ""
-            )
-
-            # 별점: 'on' 클래스 개수로 계산 (DOM 변화 시 조정 필요)
-            starOn = li.select(".ico_star.on")
-            rate = len(starOn) if starOn else 0
-
-            dateStr = (
-                li.select_one(".txt_date").get_text(strip=True)
-                if li.select_one(".txt_date")
-                else None
-            )
+            reviewerName = li.select_one("span.name_user").get_text(strip=True) if li.select_one("span.name_user") else "익명"
+            content = li.select_one("p.desc_review").get_text(strip=True) if li.select_one("p.desc_review") else ""
+            rate = len(li.select(".ico_star.on")) if li.select(".ico_star.on") else 0
+            dateStr = li.select_one(".txt_date").get_text(strip=True) if li.select_one(".txt_date") else None
             reviewDate = _parseKakaoDate(dateStr)
 
-            scrapedReviews.append(
-                {
-                    "reviewerName": reviewerName,
-                    "content": content,
-                    "rate": rate,
-                    "date": reviewDate,
-                }
-            )
+            scrapedReviews.append({
+                "reviewerName": reviewerName,
+                "content": content,
+                "rate": rate,
+                "date": reviewDate,
+            })
 
         return scrapedReviews
 
     finally:
         driver.quit()
+        shutil.rmtree(tmpDir, ignore_errors=True)
+
 
 
 
