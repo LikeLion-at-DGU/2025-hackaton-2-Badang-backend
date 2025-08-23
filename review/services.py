@@ -109,8 +109,9 @@ def postReviewAnalysis(storeId: int, term: int):
             percentageData = analysisResult.get('percentage', {})
             
             # 성공 시에만 DB에 저장하는 로직 실행
-            reviewAnalysisResult, created = ReviewAnalysis.objects.get_or_create(
+            reviewAnalysisResult, created = ReviewAnalysis.objects.update_or_create(
                 storeId=store,
+                term=term,
                 defaults={
                     'analysisKeyword': analysisResult.get('analysisKeyword', '분석 실패'),
                     'goodPoint': analysisResult.get('goodPoint', '분석 실패'),
@@ -121,17 +122,8 @@ def postReviewAnalysis(storeId: int, term: int):
                 }
             )
 
-            if not created:
-                # 이미 객체가 있다면 .get()을 사용하여 업데이트
-                reviewAnalysisResult.analysisKeyword = analysisResult.get('analysisKeyword', '분석 실패')
-                reviewAnalysisResult.goodPoint = analysisResult.get('goodPoint', '분석 실패')
-                reviewAnalysisResult.badPoint = analysisResult.get('badPoint', '분석 실패')
-                reviewAnalysisResult.goodPercentage = percentageData.get('goodPercentage', 0)
-                reviewAnalysisResult.badPercentage = percentageData.get('badPercentage', 0)
-                reviewAnalysisResult.middlePercentage = percentageData.get('middlePercentage', 0)
-                reviewAnalysisResult.save()
-
             return {"message": "리뷰 분석 및 저장 성공", "data": analysisResult}
+        
         else:
             # 분석에 실패한 경우
             return {"message": "리뷰 분석 중 오류가 발생했습니다. LLM 응답 형식에 문제가 있습니다.", "data": analysisResult}

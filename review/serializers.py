@@ -17,6 +17,7 @@ class ReviewAnalysisSerializer(serializers.ModelSerializer):
         fields = [
             "reviewAnalysisId",
             "storeId",
+            "term",
             "storeName",
             "goodPoint",
             "badPoint",
