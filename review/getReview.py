@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from typing import List, Dict, Any
+import tempfile, shutil
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -29,6 +30,7 @@ def _buildChromeOptions() -> webdriver.ChromeOptions:
     # 불필요한 확장 비활성화
     opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     opts.add_experimental_option("useAutomationExtension", False)
+    opts.add_argument("--remote-debugging-port=0")
     return opts
 
 
@@ -66,6 +68,14 @@ def getKakaoReview(kakaoPlaceId: str, maxCount: int = 50) -> List[Dict[str, Any]
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
+    tmpDir = tempfile.mkdtemp(prefix="chrome-")
+    options.add_argument(f"--user-data-dir={tmpDir}")
+    options.add_argument(f"--data-path={tmpDir}/data")
+    options.add_argument(f"--disk-cache-dir={tmpDir}/cache")
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    
     scrapedReviews: List[Dict[str, Any]] = []
 
     try:
@@ -136,7 +146,7 @@ def getKakaoReview(kakaoPlaceId: str, maxCount: int = 50) -> List[Dict[str, Any]
                     sameCountHit = 0
                 except NoSuchElementException:
                     break
-
+        
         # 최종 파싱
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
