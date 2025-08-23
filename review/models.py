@@ -35,6 +35,7 @@ class ReviewAnalysis(models.Model):
         on_delete=models.CASCADE,
         related_name="review_analysis"
     )
+    term = models.IntegerField(default=0)  # 0: 전체, 1: 한 달, 2: 일주일
 
     storeName = models.CharField(max_length=255, blank=True, default="")  # 가게명
     goodPoint = models.TextField(blank=True, default="")                # 긍정적 리뷰 요약
