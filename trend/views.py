@@ -8,10 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import *
 from newsletter.serializers import NewsletterSerializer
 from .services import *
-from newsletter.selectors import getNewsletterDetail
 from .models import *
-from main.models import Store
-from newsletter.views import createNewsletter
 from newsletter.services import createNewsletterByUser
 
 
