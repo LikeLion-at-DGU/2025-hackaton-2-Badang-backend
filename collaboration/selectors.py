@@ -92,6 +92,15 @@ def getCollaborationSearch(user,
     .filter(isWillingCollaborate=True, latitude__isnull=False, longitude__isnull=False)
     .exclude(id=me.id)
     )
+    
+    # 이미 협업 중인 가게, 요청/응답 가게 제외
+    active_ids = [c.requestStore_id for c in getActiveCollaboration(user)] + [c.responseStore_id for c in getActiveCollaboration(user)]
+    request_ids = [c.responseStore_id for c in getRequestCollaboration(user)]
+    response_ids = [c.requestStore_id for c in getResponseCollaboration(user)]
+
+    exclude_ids = set(active_ids + request_ids + response_ids)
+    if exclude_ids:
+        qs = qs.exclude(id__in=exclude_ids)
 
     # 그리고 내 가게도 좌표 검증
     if None in (me.latitude, me.longitude):
