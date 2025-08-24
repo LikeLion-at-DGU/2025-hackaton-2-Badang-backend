@@ -34,7 +34,6 @@ def generateImageForKeyword(keyword: str, size: str = "1024x1024") -> dict:
             model="gpt-image-1", 
             prompt=prompt,
             size=size,
-            response_format="b64_json",
             n=1,
         )
         b64 = res.data[0].b64_json
