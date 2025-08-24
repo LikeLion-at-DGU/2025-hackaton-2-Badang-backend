@@ -167,9 +167,9 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"error": "NotFound", "message": "해당 뉴스레터를 찾을 수 없습니다", "statusCode": 404}, status=status.HTTP_404_NOT_FOUND)
 
         if newsletter.isLiked:
-            message = "찜하기 성공"
-        else:
             message = "찜하기 해제 성공"
+        else:
+            message = "찜하기 성공"
 
         newsletter.isLiked = not bool(newsletter.isLiked)
         newsletter.save()

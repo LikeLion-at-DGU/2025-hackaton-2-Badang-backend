@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import *
 from .serializers import *
+from newsletter.models import Newsletter
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -258,5 +259,7 @@ class meView(APIView):
             "profileId": profile.user_id,
             "username": profile.profileName,
             "stores": storeReadSerializer(stores, many=True).data,
-            "menu": MenuSerializer(menu, many=True).data
+            "menu": MenuSerializer(menu, many=True).data,
+            # 사용자에게 연결된 뉴스레터 중 isLiked=true 개수
+            "likesCount": Newsletter.objects.filter(user=profile, isLiked=True).count()
         }, status=status.HTTP_200_OK)
