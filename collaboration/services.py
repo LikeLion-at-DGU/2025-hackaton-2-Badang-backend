@@ -62,7 +62,7 @@ def updateCollaborationMsg(collaborateId: int, user, memo: str = "") -> str:
     except Collaborate.DoesNotExist:
         raise DomainError("존재하지 않는 협업입니다.")
 
-    if collab.fromStore.user != user and collab.toStore.user != user:
+    if collab.requestStore.user != user and collab.responseStore.user != user:
         raise PermissionDenied("이 협업 정보를 수정할 권한이 없습니다.")
     
     # 요청자 메모 갱신 시도
