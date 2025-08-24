@@ -58,7 +58,7 @@ def createCollaboration(user, toStoreId: int, initialMessage: str = "") -> Colla
 def updateCollaborationMsg(collaborateId: int, user, memo: str = "") -> str:
     
     try:
-        collab = Collaborate.objects.select_related('fromStore', 'toStore').get(id=collaborateId)
+        collab = Collaborate.objects.select_related('requestStore', 'responseStore').get(id=collaborateId)
     except Collaborate.DoesNotExist:
         raise DomainError("존재하지 않는 협업입니다.")
 
