@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import *
 from .serializers import *
+from newsletter.models import Newsletter
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,6 +13,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError # DRF �
 from .services import *
 from .selectors import *
 from review.services import postReviewAnalysis
+from django.utils import timezone
 
 
 
@@ -154,8 +156,20 @@ class loginView(APIView):
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
             
-            postReviewAnalysis(stores_qs.first().id, term=0)
-            postReviewAnalysis(stores_qs.first().id, term=1)
+            # 가게에 연결된 리뷰 분석 데이터가 없거나 마지막 업데이트 후 3일 경과시 postReviewAnalysis 호출
+
+            first_store = stores_qs.first()
+            if first_store:
+                review_analyses = getattr(first_store, 'review_analysis', None)
+                if review_analyses is not None:
+                    if review_analyses.count() == 0:
+                        postReviewAnalysis(first_store.id, term=0)
+                        postReviewAnalysis(first_store.id, term=1)
+                    else:
+                        latest_analysis = review_analyses.order_by('-updatedAt').first()
+                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
+                            postReviewAnalysis(first_store.id, term=0)
+                            postReviewAnalysis(first_store.id, term=1)
 
             response = Response({
                 "message": "로그인 성공",
@@ -245,5 +259,7 @@ class meView(APIView):
             "profileId": profile.user_id,
             "username": profile.profileName,
             "stores": storeReadSerializer(stores, many=True).data,
-            "menu": MenuSerializer(menu, many=True).data
+            "menu": MenuSerializer(menu, many=True).data,
+            # 사용자에게 연결된 뉴스레터 중 isLiked=true 개수
+            "likesCount": Newsletter.objects.filter(user=profile, isLiked=True).count()
         }, status=status.HTTP_200_OK)
