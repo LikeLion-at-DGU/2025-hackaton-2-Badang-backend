@@ -1,6 +1,7 @@
 from typing import Tuple, List, Optional
 from .models import Newsletter
 from main.models import Store
+from django.db.models import Q
 
 
 def getNewsletterList(store: Store, cursor: Optional[int] = None, limit: int = 9, page: Optional[int] = None) -> Tuple[List[Newsletter], bool]:
@@ -66,7 +67,9 @@ def searchNewsletters(query: str = None, keyword: str = None, is_user_made: bool
     queryset = Newsletter.objects.all().select_related('store', 'user').prefetch_related('keywords').order_by('-id')
 
     if query:
-        queryset = queryset.filter(title__icontains=query)  # 필요시 내용 검색 포함
+        queryset = queryset.filter(
+            Q(title__icontains=query) | Q(content__icontains=query)
+        )
 
     if keyword:
         queryset = queryset.filter(keywords__keywordName__icontains=keyword)
