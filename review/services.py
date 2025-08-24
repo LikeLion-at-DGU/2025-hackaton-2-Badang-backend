@@ -107,18 +107,19 @@ def postReviewAnalysis(storeId: int, term: int):
         if isSuccess:
             # get() 메서드를 사용하여 안전하게 키에 접근
             percentageData = analysisResult.get('percentage', {})
-            
+
             # 성공 시에만 DB에 저장하는 로직 실행
             reviewAnalysisResult, created = ReviewAnalysis.objects.update_or_create(
                 storeId=store,
-                term=term,
+                term=term,  # term을 조건에 포함
                 defaults={
-                    'analysisKeyword': analysisResult.get('analysisKeyword', '분석 실패'),
+                    'storeName': store.name,
                     'goodPoint': analysisResult.get('goodPoint', '분석 실패'),
                     'badPoint': analysisResult.get('badPoint', '분석 실패'),
                     'goodPercentage': percentageData.get('goodPercentage', 0),
                     'badPercentage': percentageData.get('badPercentage', 0),
                     'middlePercentage': percentageData.get('middlePercentage', 0),
+                    'analysisKeyword': analysisResult.get('analysisKeyword', '분석 실패'),
                     'analysisProblem': analysisResult.get('analysisProblem', '분석 실패'),
                     'analysisSolution': analysisResult.get("analysisSolution", "분석 실패"),
                 }

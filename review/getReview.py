@@ -188,7 +188,7 @@ def getKakaoReview(kakaoPlaceId: str) -> list:
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     
-    scraped_reviews = []
+    scrapedReviews = []
 
     try:
         print(f"  [Scraper] 페이지 접속: {url}")
@@ -227,13 +227,13 @@ def getKakaoReview(kakaoPlaceId: str) -> list:
             
             # 날짜 추출 및 변환
             date_str = item.select_one('.txt_date').get_text(strip=True) if item.select_one('.txt_date') else None
-            review_date = datetime.strptime(date_str, '%Y.%m.%d.') if date_str else datetime.now()
+            reviewDate = datetime.strptime(date_str, '%Y.%m.%d.') if date_str else datetime.now()
 
-            scraped_reviews.append({
+            scrapedReviews.append({
                 'reviewerName': reviewerName,
                 'content': content,
                 'rate': rate,
-                'date': review_date,
+                'date': reviewDate,
             })
             
     except Exception as e:
@@ -241,4 +241,4 @@ def getKakaoReview(kakaoPlaceId: str) -> list:
     finally:
         driver.quit()
         
-    return scraped_reviews
+    return scrapedReviews
