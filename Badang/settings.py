@@ -250,9 +250,12 @@ AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-northeast-2')
 AWS_S3_SIGNATURE_VERSION = 's3v4'
 
 AWS_DEFAULT_ACL = None
-AWS_S3_FILE_OVERWRITE = False
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+
+AWS_QUERYSTRING_AUTH = True          # 서명 붙이기
+AWS_QUERYSTRING_EXPIRE = 3600  
+
 
 if os.getenv("AWS_S3_CUSTOM_DOMAIN"):
     MEDIA_URL = f"https://{os.getenv('AWS_S3_CUSTOM_DOMAIN')}/"
