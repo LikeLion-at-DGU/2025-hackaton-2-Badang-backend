@@ -239,10 +239,11 @@ class meView(APIView):
     def get(self, request):
         profile = request.user.profile
         stores = Store.objects.filter(user=profile)
+        menu = Menu.objects.filter(store__in=stores)
         return Response({
             "id": request.user.username,
             "profileId": profile.user_id,
             "username": profile.profileName,
             "stores": storeReadSerializer(stores, many=True).data,
-            "menu": MenuSerializer(stores.first().menu_items, many=True).data
+            "menu": MenuSerializer(menu, many=True).data
         }, status=status.HTTP_200_OK)

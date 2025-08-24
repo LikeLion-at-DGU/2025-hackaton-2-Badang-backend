@@ -237,7 +237,7 @@ STORAGES = {
 
 
 OPENAI_API_KEY = env("OPENAI_API_KEY")
-OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4.1")
 
 SITE_ID = 1
 
