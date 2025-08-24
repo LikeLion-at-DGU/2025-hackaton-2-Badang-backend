@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied, NotFound
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from .selectors import getNewsletterList
 from .selectors import searchNewsletters
@@ -185,16 +186,24 @@ class NewsletterViewSet(viewsets.ReadOnlyModelViewSet):
         # detail=True 이므로 URL의 {pk}를 storeId로 사용합니다.
         storeId = pk
 
-        if request.method != 'POST':
-            return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        # storeId에 해당하는 스토어에 연결된 뉴스레터가 없거나 월요일이며 오늘 자동 생성된 뉴스레터가 없는 경우 뉴스레터 생성, 이외의 경우 미생성
+        if not Newsletter.objects.filter(store_id=storeId).exists() or (timezone.now().weekday() == 0 and not Newsletter.objects.filter(store_id=storeId, createdAt__date=timezone.now().date()).exists()):
+            if request.method != 'POST':
+                return Response({"error": "Method Not Allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-        try:
-            new_newsletter = createNewsletter(storeId=storeId)
+            try:
+                new_newsletter = createNewsletter(storeId=storeId)
 
+                return Response({
+                    "message": "뉴스레터가 성공적으로 생성되었습니다.",
+                    "data": NewsletterSerializer(new_newsletter, context={'request': request}).data
+                }, status=status.HTTP_201_CREATED)
+
+            except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        else:
             return Response({
-                "message": "뉴스레터가 성공적으로 생성되었습니다.",
-                "data": NewsletterSerializer(new_newsletter, context={'request': request}).data
-            }, status=status.HTTP_201_CREATED)
-
-        except (ValueError, Store.DoesNotExist, ReviewAnalysis.DoesNotExist, Keyword.DoesNotExist) as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                "message": "이번 주차 뉴스레터가 이미 존재합니다",
+                "data": None
+            }, status=status.HTTP_200_OK)
