@@ -23,14 +23,14 @@ class CollaborationSearchListView(APIView):
         req = CollaborationSearchReq(data=request.data)
         req.is_valid(raise_exception=True)
         
-        type = req.validated_data["type"]
-        category = req.validated_data["category"]
+        typeId = req.validated_data.get("type", None)
+        categoryId = req.validated_data.get("category", None)
         query = req.validated_data.get("query", "")
-        
+
         user = request.user.profile
         
         try:
-            res = getCollaborationSearch(user, type, category, query)
+            res = getCollaborationSearch(user, typeId, categoryId, query)
         except DomainError as e:
             return Response({"detail":str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
