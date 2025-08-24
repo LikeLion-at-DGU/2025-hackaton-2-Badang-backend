@@ -120,7 +120,7 @@ def postReviewAnalysis(storeId: int, term: int):
                     'badPercentage': percentageData.get('badPercentage', 0),
                     'middlePercentage': percentageData.get('middlePercentage', 0),
                     'analysisProblem': analysisResult.get('analysisProblem', '분석 실패'),
-                    'analysisSolution": analysisResult.get('analysisSolution', '분석 실패')
+                    'analysisSolution': analysisResult.get("analysisSolution", "분석 실패"),
                 }
             )
 
