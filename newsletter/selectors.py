@@ -68,7 +68,9 @@ def searchNewsletters(query: str = None, keyword: str = None, is_user_made: bool
 
     if query:
         queryset = queryset.filter(
-            Q(title__icontains=query) | Q(content__icontains=query)
+            Q(title__icontains=query) | 
+            Q(firstContent__icontains=query) |
+            Q(secondContent__icontains=query)
         )
 
     if keyword:
