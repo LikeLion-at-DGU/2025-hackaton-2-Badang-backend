@@ -12,12 +12,21 @@ class KeywordRes(serializers.ModelSerializer):
 class NewsletterListSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(format='%Y-%m-%d')
     isUserMade = serializers.BooleanField()
-    # keyword 필드를 KeywordRes로 직렬화
-    keywords = KeywordRes(many=True, read_only=True)
+    keyword = KeywordRes(many=True, read_only=True)
 
     class Meta:
         model = Newsletter
-        fields = ["id", "title", "createdAt", "isUserMade", "keywords"]
+        fields = [
+            "id",
+            "title",
+            "firstContent",
+            "secondContent",
+            "createdAt",
+            "isUserMade",
+            "isLiked",
+            "reviewAnalysisId",
+            "keyword",   # 중첩 결과로 전체 Keyword 필드들 반환
+        ]
 
 class NewsletterListResponseSerializer(serializers.Serializer):
     newsletters = NewsletterListSerializer(many=True)
