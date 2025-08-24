@@ -1,9 +1,8 @@
-# serializers.py
 from rest_framework import serializers
+from django.core.files.storage import default_storage
 from .models import *
 from main.models import *
 from newsletter.models import Newsletter
-from django.core.files.storage import default_storage
 
 # 사용자가 직접 입력하는 키워드
 class KeywordsInputReq(serializers.Serializer):
@@ -18,48 +17,37 @@ class TrendInputReq(serializers.Serializer):
 
 # 키워드 응답용
 class KeywordRes(serializers.ModelSerializer):
-    keywordImageUrl = serializers.SerializerMethodField()
+    # 카멜케이스 메서드명 사용
+    keywordImageUrl = serializers.SerializerMethodField(method_name="getKeywordImageUrl")
 
     class Meta:
         model = Keyword
         fields = "__all__"
 
-    def get_keywordImageUrl(self, obj):
+    def getKeywordImageUrl(self, obj):
         """
-        DB에는 상대 경로(path)일 수도, 절대 URL일 수도 있음.
-        - 절대 URL이면 그대로 반환
-        - 상대 경로이면 default_storage.url()로 절대 URL을 만들어 반환
+        - DB 값이 절대 URL이면 그대로 반환
+        - 상대 경로(스토리지 키)이면 default_storage.url() → 필요 시 request.build_absolute_uri()로 절대화
         """
-        path = obj.keywordImageUrl
-        if not path:
+        pathOrUrl = getattr(obj, "keywordImageUrl", None) or getattr(obj, "keywordImagePath", None)
+        if not pathOrUrl:
             return None
-        if isinstance(path, str) and path.startswith(("http://", "https://")):
-            return path
+
+        if isinstance(pathOrUrl, str) and pathOrUrl.startswith(("http://", "https://")):
+            return pathOrUrl
+
         try:
-            return default_storage.url(path.lstrip("/"))
+            url = default_storage.url(pathOrUrl.lstrip("/"))
         except Exception:
             return None
 
-    getKeywordImageUrl = get_keywordImageUrl
+        req = self.context.get("request")
+        return req.build_absolute_uri(url) if (req and isinstance(url, str) and url.startswith("/")) else url
 
 # 트렌드 응답용
 class TrendRes(serializers.ModelSerializer):
     keywords = KeywordRes(many=True, read_only=True)
+
     class Meta:
         model = Trend
         fields = ["id", "trendData", "createdAt", "keywords"]
-        
-class NewsletterRes(serializers.ModelSerializer):
-    class Meta:
-        model = Newsletter
-        fields = [
-            "id", 
-            "title",
-            "thumbnail",
-            "isUserMade",
-            "createdAt",
-            "isLiked",
-            "firstContent", 
-            "secondContent", 
-            "feedback"
-        ]
