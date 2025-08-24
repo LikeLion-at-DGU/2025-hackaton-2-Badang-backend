@@ -6,7 +6,10 @@ from django.conf import settings
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(
+    api_key=settings.OPENAI_API_KEY,
+    project=getattr(settings, "OPENAI_PROJECT_ID", None), 
+)
 
 def _promptFor(keyword: str) -> str:
     return (f"{keyword} 관련 상업용 일러스트. 배경 깔끔, 시니어 친화, 고대비, 텍스트/로고/브랜드 미포함.")
