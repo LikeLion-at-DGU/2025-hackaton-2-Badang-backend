@@ -74,7 +74,7 @@ def createNewsletterByUser(storeId: int, keyword) -> Newsletter:
         user=user,
         store=store,
         review_analysis=reviewAnalysis,
-        isUserMade=False,
+        isUserMade=True,
         title=createNewNewsletter.get("title"),
         firstContent=createNewNewsletter.get("firstContent"),
         secondContent=createNewNewsletter.get("secondContent")
