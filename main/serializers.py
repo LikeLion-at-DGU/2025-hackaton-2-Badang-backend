@@ -39,6 +39,9 @@ class MenuSerializer(serializers.Serializer):
             raise serializers.ValidationError("메뉴 이름이 비어 있습니다.")
         return v
     
+    class Meta:
+        fields = ['name', 'price']
+    
     
 class VisitorSerializer(serializers.ModelSerializer):
     class Meta:

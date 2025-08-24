@@ -243,5 +243,6 @@ class meView(APIView):
             "id": request.user.username,
             "profileId": profile.user_id,
             "username": profile.profileName,
-            "stores": storeReadSerializer(stores, many=True).data
+            "stores": storeReadSerializer(stores, many=True).data,
+            "menu": MenuSerializer(stores.first().menu_items, many=True).data
         }, status=status.HTTP_200_OK)
