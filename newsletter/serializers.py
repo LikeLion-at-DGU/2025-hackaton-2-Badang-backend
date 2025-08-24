@@ -9,10 +9,16 @@ class KeywordRes(serializers.ModelSerializer):
         model = Keyword
         fields = "__all__" 
         
+
 class NewsletterListSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(format='%Y-%m-%d')
     isUserMade = serializers.BooleanField()
     keyword = KeywordRes(many=True, read_only=True)
+
+    
+    reviewAnalysisId = serializers.IntegerField(source='reviewAnalysis.id', read_only=True)
+    storeName = serializers.CharField(source='store.name', read_only=True)
+    userName = serializers.CharField(source='store.user.profileName', read_only=True) 
 
     class Meta:
         model = Newsletter
@@ -25,7 +31,9 @@ class NewsletterListSerializer(serializers.ModelSerializer):
             "isUserMade",
             "isLiked",
             "reviewAnalysisId",
-            "keyword",   # 중첩 결과로 전체 Keyword 필드들 반환
+            "storeName",
+            "userName",
+            "keyword"
         ]
 
 class NewsletterListResponseSerializer(serializers.Serializer):
