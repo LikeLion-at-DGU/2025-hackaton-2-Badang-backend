@@ -118,7 +118,7 @@ def getCollaborationSearch(user,
         if store.id in excludeIds:
             continue
         picked.append(store)
-        if len(picked) == 9:
+        if len(picked) == 8:
             break
 
     return picked

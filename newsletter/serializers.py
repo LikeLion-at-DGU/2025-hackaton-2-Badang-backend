@@ -1,34 +1,23 @@
 from rest_framework import serializers
+from django.core.files.storage import default_storage
 from main.models import Store
+from trend.models import Keyword
 from .models import Newsletter
 
+class KeywordRes(serializers.ModelSerializer):
+    class Meta:
+        model = Keyword
+        fields = "__all__" 
+        
 class NewsletterListSerializer(serializers.ModelSerializer):
-    # 날짜는 YYYY-MM-DD 포맷으로 반환
     createdAt = serializers.DateTimeField(format='%Y-%m-%d')
     isUserMade = serializers.BooleanField()
-    keyword = serializers.SerializerMethodField()
-    # 썸네일은 URL로 반환
-    thumbnail = serializers.SerializerMethodField()
-    
+    # keyword 필드를 KeywordRes로 직렬화
+    keywords = KeywordRes(many=True, read_only=True)
+
     class Meta:
         model = Newsletter
-        fields = ['id', 'title', 'thumbnail', 'createdAt', 'isUserMade', 'keyword']
-
-    def get_thumbnail(self, obj):
-        request = self.context.get('request')
-        if not obj.thumbnail:
-            return ""
-        try:
-            url = obj.thumbnail.url
-        except Exception:
-            return ""
-        if request is None:
-            return url
-        return request.build_absolute_uri(url)
-
-    def get_keyword(self, obj):
-        first = obj.keywords.first()
-        return first.keywordName if first is not None else ""
+        fields = ["id", "title", "createdAt", "isUserMade", "keywords"]
 
 class NewsletterListResponseSerializer(serializers.Serializer):
     newsletters = NewsletterListSerializer(many=True)
