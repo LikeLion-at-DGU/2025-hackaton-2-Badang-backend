@@ -67,14 +67,14 @@ def updateCollaborationMsg(collaborateId: int, user, memo: str = "") -> str:
     
     # 요청자 메모 갱신 시도
     updated = (Collaborate.objects
-               .filter(id=collaborateId, requestStore=user.profile.stores.first())
+               .filter(id=collaborateId, requestStore=user.stores.first())
                .update(requestMemo=memo))
     if updated:
         return memo
 
     # 응답자 메모 갱신 시도
     updated = (Collaborate.objects
-               .filter(id=collaborateId, responseStore=user.profile.stores.first())
+               .filter(id=collaborateId, responseStore=user.stores.first())
                .update(responseMemo=memo))
     if updated:
         return memo
