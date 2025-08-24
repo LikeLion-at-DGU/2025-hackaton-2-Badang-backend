@@ -24,18 +24,20 @@ class TrendsToKeywordView(APIView):
         req = TrendInputReq(data=request.data)
         req.is_valid(raise_exception=True)
 
-        trend, keywords = saveKeywordsFromTrends(req.validated_data["trends"])
+        trend, _ = saveKeywordsFromTrends(req.validated_data["trends"])
 
-        trendOut = TrendRes(trend, context={"request": request}).data
-        keywordOut = KeywordRes(keywords, many=True).data  # 리스트 직렬화
+        # 커밋 이후 DB에서 다시 읽기 (키워드 프리패치)
+        trendRefetched = Trend.objects.prefetch_related("keywords").get(id=trend.id)
 
+        trendOut = TrendRes(trendRefetched, context={"request": request}).data
+        # 굳이 바깥으로 keywords를 중복 노출할 필요 없으면 trendOut만 내려도 OK
         return Response(
             {
                 "message": "트렌드와 키워드가 생성되었습니다.",
                 "statusCode": 201,
                 "data": {
                     "trend": trendOut,
-                    "keywords": keywordOut,
+                    "keywords": trendOut["keywords"],  # 필요 없으면 이 라인은 삭제해도 됨
                 },
             },
             status=status.HTTP_201_CREATED,
@@ -60,6 +62,13 @@ class CreateKeywordView(APIView):
         try:
             
             kw = keywordSaveByUserSync(keyword, me)
+
+            if kw.status != "succeeded" or not kw.keywordImageUrl:
+                return Response({"detail": "키워드 이미지 생성에 실패했습니다."},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            news = createNewsletterByUser(me.id, kw)
+            
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
@@ -75,7 +84,7 @@ class CreateKeywordView(APIView):
                 "statusCode": 200,
                 "data": {
                     "keyword": kwData,       # 여기의 keywordImageUrl은 serializer에서 URL로 변환됨
-                    "newsletter": newsData   # thumbnail은 별 기능이라 그대로 유지
+                    "newsletter": newsData
                 }
             }, status=status.HTTP_200_OK)
         except Exception:
