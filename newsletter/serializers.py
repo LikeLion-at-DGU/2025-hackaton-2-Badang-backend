@@ -13,7 +13,7 @@ class KeywordRes(serializers.ModelSerializer):
 class NewsletterListSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(format='%Y-%m-%d')
     isUserMade = serializers.BooleanField()
-    keyword = KeywordRes(many=True, read_only=True)
+    keywords = KeywordRes(many=True, read_only=True)
 
     
     reviewAnalysisId = serializers.IntegerField(source='reviewAnalysis.id', read_only=True)
@@ -33,7 +33,7 @@ class NewsletterListSerializer(serializers.ModelSerializer):
             "reviewAnalysisId",
             "storeName",
             "userName",
-            "keyword"
+            "keywords"
         ]
 
 class NewsletterListResponseSerializer(serializers.Serializer):
@@ -44,7 +44,7 @@ class NewsletterSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(format='%Y-%m-%d')
     storeName = serializers.CharField(source='store.name', read_only=True)
     userName = serializers.CharField(source='user.profileName', read_only=True)
-    keywords = serializers.StringRelatedField(many=True, read_only=True)
+    keywords = KeywordRes(many=True, read_only=True)
     reviewAnalysisId = serializers.PrimaryKeyRelatedField(source='review_analysis', read_only=True)
 
     class Meta:
