@@ -25,24 +25,24 @@ class KeywordRes(serializers.ModelSerializer):
         fields = "__all__"
 
     def getKeywordImageUrl(self, obj):
-        """
-        - DB 값이 절대 URL이면 그대로 반환
-        - 상대 경로(스토리지 키)이면 default_storage.url() → 필요 시 request.build_absolute_uri()로 절대화
-        """
-        pathOrUrl = getattr(obj, "keywordImageUrl", None) or getattr(obj, "keywordImagePath", None)
-        if not pathOrUrl:
+        raw = getattr(obj, "keywordImageUrl", None) or getattr(obj, "keywordImagePath", None)
+        if not raw:
             return None
 
-        if isinstance(pathOrUrl, str) and pathOrUrl.startswith(("http://", "https://")):
-            return pathOrUrl
+        if isinstance(raw, str) and raw.startswith(("http://", "https://")):
+            parsed = urlparse(raw)
+            # 이미 서명돼 있으면 그대로
+            if parsed.query:
+                return raw
+            # 쿼리 없으면 키 뽑아서 재서명
+            key = parsed.path.lstrip("/")
+            return default_storage.url(key)
 
-        try:
-            url = default_storage.url(pathOrUrl.lstrip("/"))
-        except Exception:
-            return None
+        # 상대 경로면 스토리지로 서명 URL 생성
+        url = default_storage.url(str(raw).lstrip("/"))
 
         req = self.context.get("request")
-        return req.build_absolute_uri(url) if (req and isinstance(url, str) and url.startswith("/")) else url
+        return req.build_absolute_uri(url) if (req and url.startswith("/")) else url
 
 # 트렌드 응답용
 class TrendRes(serializers.ModelSerializer):
