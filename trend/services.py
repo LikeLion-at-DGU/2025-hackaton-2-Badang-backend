@@ -159,8 +159,8 @@ def _generateImageForKeyword(keyword: Keyword):
     
     def _afterCommitGenerate():
         try:
-            res = generateImageForKeyword(keyword.keywordName, size="1792x1024")
-            keyword.keywordImageUrl = res["path"] 
+            res = generateImageForKeyword(keyword.keywordName, size="1024x1024")
+            keyword.keywordImageUrl = res.get("path") 
             keyword.isImage = True
             keyword.status = "succeeded"
             keyword.save(update_fields=["keywordImageUrl", "isImage", "status"])
