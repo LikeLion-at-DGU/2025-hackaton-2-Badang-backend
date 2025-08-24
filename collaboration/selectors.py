@@ -43,6 +43,7 @@ def getActiveCollaboration(user):
     rows = list(req_qs) + list(res_qs)
     # 최신순 정렬
     rows.sort(key=lambda c: c.createdAt, reverse=True)
+    
     return rows
 
 # 내가 협업을 '요청한' 목록 (요청자 = 나), 보통 대기중만

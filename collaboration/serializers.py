@@ -118,6 +118,9 @@ class ActiveItem(serializers.Serializer):
     collaborateStore = StoreBrief()
     memo = serializers.CharField(allow_blank=True)
     startedAt = serializers.DateTimeField()
+    type = serializers.IntegerField()
+    category = serializers.IntegerField()
+    phoneNumber = serializers.CharField()
 
     def to_representation(self, obj: Collaborate):
         myStoreId = self.context.get("storeId")
@@ -137,7 +140,7 @@ class ActiveItem(serializers.Serializer):
             "collaborateId": obj.id,
             "collaborateStore": StoreBrief(partner).data,
             "memo": memo,
-            "startedAt": started,
+            "startedAt": started
         }
 
 
