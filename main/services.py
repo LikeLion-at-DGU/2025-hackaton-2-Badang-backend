@@ -95,19 +95,13 @@ def storeCreate(name: str, address: str, user: Profile):
         # 극단적인 동시성 케이스(두 요청이 동시에 들어온 경우 등)
         raise DomainError("이미 등록된 kakaoPlaceId 입니다.", httpStatus=409)
 
-def storeUpdate(store: Store, **data) -> Store:
-    """
-    - 저장은 atomic 트랜잭션 안에서 끝낸다.
-    - 무거운 후처리는 on_commit 으로 미룬다(응답 안정).
-    - 메뉴/visitor 등 nested 입력을 방어적으로 처리.
-    """
-    # nested 입력 꺼내두기 (트랜잭션 밖에서 pop)
+def storeUpdate(store: Store, **data) -> dict:
     visitorData = data.pop('visitor', None)
     menusData   = data.pop('menu', None)
 
     try:
         with transaction.atomic():
-            # 1) visitor 처리 (dict 또는 id 모두 허용)
+            # visitor 처리
             if visitorData:
                 if isinstance(visitorData, dict):
                     visitorObj, _ = Visitor.objects.get_or_create(**visitorData)
@@ -115,8 +109,7 @@ def storeUpdate(store: Store, **data) -> Store:
                     visitorObj = Visitor.objects.get(pk=visitorData)
                 store.visitor = visitorObj
 
-            # 2) FK/일반 필드 업데이트
-            #   type, category가 id로 올 수도 있으니 둘 다 케이스 처리
+            # FK/일반 필드 처리
             if 'type' in data and data.get('type') is not None:
                 typeVal = data['type']
                 store.type = Type.objects.get(pk=typeVal) if isinstance(typeVal, int) else typeVal
@@ -131,18 +124,15 @@ def storeUpdate(store: Store, **data) -> Store:
             if 'storeContent' in data:
                 store.content = data['storeContent']
 
-            # 좌표/전화번호 등 다른 필드가 있으면 동일 패턴으로 추가
-            # ex) if 'storeNumber' in data: store.storeNumber = data['storeNumber']
-
-            store.full_clean()  # 모델 수준 검증(권장)
+            store.full_clean()
             store.save()
 
-            # 3) 메뉴 갱신 (전부 교체하는 정책)
+            # 메뉴 교체
+            menuList = []
             if menusData is not None:
                 store.menus.all().delete()
                 bulk = []
                 for m in menusData:
-                    # 방어적 추출(키 누락 방지)
                     name = m.get('name')
                     price = m.get('price')
                     if not name:
@@ -150,19 +140,34 @@ def storeUpdate(store: Store, **data) -> Store:
                     bulk.append(Menu(store=store, name=name, price=price))
                 if bulk:
                     Menu.objects.bulk_create(bulk)
+                menuList = [{"name": m.name, "price": m.price} for m in store.menus.all()]
 
-            # 4) 무거운 후처리(외부 호출)는 커밋 후에 실행
-            # def afterCommit():
-            #     try:
-            #         postReviewAnalysis(store.id, term=0)
-            #         postReviewAnalysis(store.id, term=1)
-            #     except Exception:
-            #         logger.exception("postReviewAnalysis failed (store_id=%s)", store.id)
-            #         # 실패해도 사용자 응답은 성공으로 유지
+        # visitor dict 변환
+        visitorDict = None
+        if store.visitor:
+            visitorDict = {
+                "id": store.visitor.id,
+                "gender": store.visitor.get_gender_display(),
+                "ageGroup": store.visitor.get_age_group_display(),
+                "isForeign": store.visitor.is_foreign,
+            }
 
-            # transaction.on_commit(afterCommit)
+        # 최종 dict 응답
+        return {
+            "id": store.id,
+            "name": store.name,
+            "address": store.address,
+            "visitor": visitorDict,
+            "menu": menuList,
+            "type": store.type.id if store.type else None,
+            "category": store.category.id if store.category else None,
+            "isWillingCollaborate": store.isWillingCollaborate,
+            "storeContent": store.content,
+        }
 
-        return store
+    except Exception as e:
+        raise
+
 
     except (ValidationError, IntegrityError) as e:
         # 비즈니스/무결성 문제는 DomainError로 승격해 400으로 내려가게
