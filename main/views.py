@@ -152,6 +152,14 @@ class storeView(APIView):
             resultDict = storeUpdate(store=store, **req.validated_data)
             normalized = normalizeStoreDict(resultDict)
             
+            if not resultDict.get("menu"):
+                store.refresh_from_db()
+                resultDict["menu"] = [
+                    {"name": m.name, "price": m.price}
+                    for m in store.menus.all()
+                ]
+
+            
             return Response({
                 "message": "상세정보 등록 완료",
                 "statusCode": "200",
