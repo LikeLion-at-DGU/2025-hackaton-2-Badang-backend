@@ -192,41 +192,52 @@ class loginView(APIView):
                 username=req.validated_data["id"],
                 password=req.validated_data["password"]
             )
-            # result 예시: {"user": <User>, "profile": <Profile>, "tokens": {...}}
 
-            # 프로필(혹은 프로필에 연결된 스토어) 기준으로 조회
             profile = result["user"].profile
-            stores_qs = Store.objects.filter(user=profile)
-            
-            stores = storeReadSerializer(stores_qs, many=True).data
-            
-            # 또는 최소 필드만
-            # stores = list(stores_qs.values("id", "name", "address"))
+            storesQs = Store.objects.filter(user=profile)
+            stores = storeReadSerializer(storesQs, many=True).data
 
             response = Response({
                 "message": "로그인 성공",
                 "stores": stores
             }, status=status.HTTP_200_OK)
 
-            # 쿠키 설정 (개발 중 http라면 secure=False 가능, 배포는 꼭 True+None)
+            cookieDomain = ".doyoun.shop"
+            cookiePath = "/"
+            cookieSameSite = "None"   # 크로스사이트면 꼭 None
+            cookieSecure = True       # 배포는 HTTPS 필수
+
+            # access
             response.set_cookie(
                 "access_token",
                 result["tokens"]["access"],
                 httponly=True,
-                secure=True,
-                samesite='None'  # 크로스사이트라면 "None"
+                secure=cookieSecure,
+                samesite=cookieSameSite,
+                domain=cookieDomain,
+                path=cookiePath,
             )
+            # refresh
             response.set_cookie(
                 "refresh_token",
                 result["tokens"]["refresh"],
                 httponly=True,
-                secure=True,
-                samesite='None'  # 크로스사이트라면 "None"
+                secure=cookieSecure,
+                samesite=cookieSameSite,
+                domain=cookieDomain,
+                path=cookiePath,
             )
+
+            # (마이그레이션용, 선택) 과거 host-only 쿠키가 남아있을 수 있어서 한 번 더 비우기
+            # 배포 안정화 후엔 제거해도 됨.
+            response.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
+            response.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
+
             return response
 
         except DomainError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class logoutView(APIView):
     permission_classes = [IsAuthenticated]
