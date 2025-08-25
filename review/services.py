@@ -61,6 +61,7 @@ def updateReviewData(store: Store, reviewData: list):
     Review.objects.bulk_create(createReview)
 
 def postReviewAnalysis(storeId: int, term: int):
+    print("리뷰 분석 시작")
     try:
         store = Store.objects.get(pk=storeId)
         if not store.kakaoPlaceId:
@@ -73,6 +74,8 @@ def postReviewAnalysis(storeId: int, term: int):
     if scrapedReviews:
         updateReviewData(store, scrapedReviews)
 
+    print("리뷰 데이터:", scrapedReviews)
+    
     # term에 따라 리뷰 필터링
     date = timezone.now()
     reviewsQuerySet = store.reviews.all()
