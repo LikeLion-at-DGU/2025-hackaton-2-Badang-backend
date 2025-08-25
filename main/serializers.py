@@ -61,9 +61,33 @@ class loginSerializer(serializers.Serializer):
     id = serializers.CharField()
     password = serializers.CharField(write_only=True) 
     
+class visitorSerializer(serializers.ModelSerializer):
+    # 코드 값 그대로
+    gender = serializers.CharField()
+    ageGroup = serializers.IntegerField(source="age_group")
+    isForeign = serializers.BooleanField(source="is_foreign")
+
+    # 라벨(choices의 display)
+    genderLabel = serializers.CharField(source="get_gender_display", read_only=True)
+    ageGroupLabel = serializers.CharField(source="get_age_group_display", read_only=True)
+
+    class Meta:
+        model = Visitor
+        fields = [
+            "id",
+            "gender",        # 'M' | 'F' | 'O'
+            "genderLabel",   # '남' | '여' | '기타'
+            "ageGroup",      # 0|1|2|3
+            "ageGroupLabel", # '청소년'|'청년'|'중년'|'노년'
+            "isForeign"      # true/false
+        ]
+        read_only_fields = ["id", "genderLabel", "ageGroupLabel"]
+
+
 class storeReadSerializer(serializers.ModelSerializer):
-    ownerName = serializers.CharField(source='user.profileName', read_only=True) 
-    
+    ownerName = serializers.CharField(source="user.profileName", read_only=True)
+    visitor = visitorSerializer(read_only=True)  # ← dict 형태로 포함
+
     class Meta:
         model = Store
         fields = "__all__"
