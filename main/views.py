@@ -232,52 +232,42 @@ class logoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # 생성 시 썼던 값으로 맞춰 주세요!
-        cookieDomain = ".doyoun.shop"   # 둘이 다른 도메인이면 공통 도메인 사용
+        cookieDomain = ".doyoun.shop"
         cookiePath = "/"
-        cookieSameSite = "None"            # 크로스사이트면 None
-        cookieSecure = True                # HTTPS 권장
+        cookieSameSite = "None"
+        cookieSecure = True
 
         refreshToken = request.COOKIES.get("refresh_token")
 
-        # 1) 서버측 토큰 무효화 (있을 때만)
         if refreshToken:
             try:
-                profileLogout(refreshToken)  # 이미 구현하신 블랙리스트/무효화 로직
+                profileLogout(refreshToken)
             except DomainError as e:
-                # 토큰 블랙리스트 실패해도 프론트 쿠키는 지워서 '반쯤 로그아웃' 방지
                 resp = Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                # 어찌됐든 쿠키는 비워줌
-                resp.delete_cookie(
-                    "access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite
-                )
-                resp.delete_cookie(
-                    "refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite
-                )
+                # 1) host-only 쿠키 삭제 (domain 생략)
+                resp.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
+                resp.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
+                # 2) .doyoun.shop 쿠키 삭제
+                resp.delete_cookie("access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
+                resp.delete_cookie("refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
                 return resp
 
-        # 2) 정상/비정상 상관없이 쿠키는 항상 제거
         resp = Response({"message": "로그아웃 성공"}, status=status.HTTP_200_OK)
-        resp.delete_cookie(
-            "access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite
-        )
-        resp.delete_cookie(
-            "refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite
-        )
 
-        # (선택) 구형 브라우저 호환용: 만료 쿠키를 한 번 더 덮어쓰기
-        resp.set_cookie(
-            "access_token", "", max_age=0, expires=0,
-            path=cookiePath, domain=cookieDomain,
-            secure=cookieSecure, httponly=True, samesite=cookieSameSite
-        )
-        resp.set_cookie(
-            "refresh_token", "", max_age=0, expires=0,
-            path=cookiePath, domain=cookieDomain,
-            secure=cookieSecure, httponly=True, samesite=cookieSameSite
-        )
+        # 1) host-only 먼저
+        resp.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
+        resp.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
+        # 2) .doyoun.shop 도 같이
+        resp.delete_cookie("access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
+        resp.delete_cookie("refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
+
+        # (선택) 만료 덮어쓰기
+        for name in ["access_token", "refresh_token"]:
+            resp.set_cookie(name, "", max_age=0, expires=0,
+                            path=cookiePath, secure=cookieSecure, httponly=True, samesite=cookieSameSite)
+            resp.set_cookie(name, "", max_age=0, expires=0,
+                            path=cookiePath, domain=cookieDomain, secure=cookieSecure, httponly=True, samesite=cookieSameSite)
         return resp
-
 
 
 class tokenRefreshView(APIView):
