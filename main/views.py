@@ -197,11 +197,24 @@ class loginView(APIView):
             # 프로필(혹은 프로필에 연결된 스토어) 기준으로 조회
             profile = result["user"].profile
             stores_qs = Store.objects.filter(user=profile)
-            
+
             stores = storeReadSerializer(stores_qs, many=True).data
-            
+
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
+
+            first_store = stores_qs.first()
+            if first_store:
+                review_analyses = getattr(first_store, 'review_analysis', None)
+                if review_analyses is not None:
+                    if review_analyses.count() == 0:
+                        postReviewAnalysis(first_store.id, term=0)
+                        postReviewAnalysis(first_store.id, term=1)
+                    else:
+                        latest_analysis = review_analyses.order_by('-updatedAt').first()
+                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
+                            postReviewAnalysis(first_store.id, term=0)
+                            postReviewAnalysis(first_store.id, term=1)
 
             response = Response({
                 "message": "로그인 성공",
@@ -223,20 +236,6 @@ class loginView(APIView):
                 secure=True,
                 samesite='None'  # 크로스사이트라면 "None"
             )
-            
-            first_store = stores_qs.first()
-            if first_store:
-                review_analyses = getattr(first_store, 'review_analysis', None)
-                if review_analyses is not None:
-                    if review_analyses.count() == 0:
-                        postReviewAnalysis(first_store.id, term=0) 
-                        postReviewAnalysis(first_store.id, term=1)
-                    else:
-                        latest_analysis = review_analyses.order_by('-updatedAt').first()
-                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
-                            postReviewAnalysis(first_store.id, term=0)
-                            postReviewAnalysis(first_store.id, term=1)
-            
             return response
 
         except DomainError as e:
