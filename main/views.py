@@ -17,13 +17,13 @@ GENDER_DISPLAY_TO_CODE = {"남": "M", "여": "F", "기타": "O"}
 AGE_DISPLAY_TO_CODE    = {"청소년": 0, "청년": 1, "중년": 2, "노년": 3}
 
 class signupView(APIView):
-    permission_classes= [AllowAny]
+    permission_classes = [AllowAny]
     authentication_classes = []
-    
+
     def post(self, request):
-        req = signupSerializer(data = request.data)
+        req = signupSerializer(data=request.data)
         req.is_valid(raise_exception=True)
-        
+
         try:
             result = profileCreate(
                 username=req.validated_data["username"],
@@ -31,40 +31,53 @@ class signupView(APIView):
                 name=req.validated_data["name"],
                 phoneNumber=req.validated_data["phoneNumber"]
             )
-            
+
             body = {
                 "message": "회원가입 성공",
-                "profileId": result["profile"].user_id,          
-                "username": result["profile"].profileName,       
-                "id": result["profile"].user.username            
+                "profileId": result["profile"].user_id,
+                "username": result["profile"].profileName,
+                "id": result["profile"].user.username
             }
 
             response = Response(body, status=status.HTTP_201_CREATED)
-            
-            # secure=True로 일관성 유지 (HTTPS 환경에서만 쿠키 전송)
+
+            # 통일: 배포 속성
+            cookieDomain = ".doyoun.shop"
+            cookiePath = "/"
+            cookieSameSite = "None"   # 크로스사이트면 None
+            cookieSecure = True       # HTTPS 필수
+
+            # access
             response.set_cookie(
-                'access_token', 
-                result['tokens']['access'],
+                "access_token",
+                result["tokens"]["access"],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=cookieSecure,
+                samesite=cookieSameSite,
+                domain=cookieDomain,
+                path=cookiePath,
             )
+            # refresh
             response.set_cookie(
-                'refresh_token', 
-                result['tokens']['refresh'],
+                "refresh_token",
+                result["tokens"]["refresh"],
                 httponly=True,
-                secure=True,
-                samesite='None'
+                secure=cookieSecure,
+                samesite=cookieSameSite,
+                domain=cookieDomain,
+                path=cookiePath,
             )
+
+            # (마이그레이션용, 선택) 과거 host-only 쿠키 제거
+            response.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
+            response.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
 
             return response
-            
+
         except DomainError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            # 예상 밖 서버 오류 -> 500
+        except Exception:
             return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 def normalizeStoreDict(dataDict: dict) -> dict:
     if not isinstance(dataDict, dict):
