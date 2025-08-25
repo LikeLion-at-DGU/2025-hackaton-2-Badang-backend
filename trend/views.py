@@ -9,7 +9,7 @@ from .serializers import *
 from newsletter.serializers import NewsletterSerializer
 from .services import *
 from .models import *
-from newsletter.services import createNewsletterByUser
+from newsletter.services import createNewsletterByUser, createNewsletter
 
 
 class DomainError(Exception):
@@ -21,6 +21,7 @@ class TrendsToKeywordView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        
         req = TrendInputReq(data=request.data)
         req.is_valid(raise_exception=True)
 
@@ -42,6 +43,8 @@ class TrendsToKeywordView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+        
+    
         
 class CreateKeywordView(APIView):
     permission_classes = [IsAuthenticated]
