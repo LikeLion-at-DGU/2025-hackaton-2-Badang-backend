@@ -6,27 +6,36 @@ from review.models import ReviewAnalysis
 from main.models import Store
 
 
-def getReviewAnalysis(storeId: int, term: int) -> Dict:
+def getReviewAnalysis(storeId: int, term: int) -> Dict[str, Any]:
     try:
-        analysis = ReviewAnalysis.objects.get(storeId=storeId, term=term) # 스토어 아이디 / term 기반 리뷰 분석 조회
+        analysis = (ReviewAnalysis.objects
+                    .select_related('storeId')
+                    .only('goodPoint', 'badPoint',
+                          'goodPercentage', 'middlePercentage', 'badPercentage',
+                          'analysisKeyword', 'analysisProblem', 'analysisSolution',
+                          'storeId__name')
+                    .get(storeId_id=storeId, term=term))
     except ReviewAnalysis.DoesNotExist:
         return {
-            "error": "Not Found",
-            "message": f"Store ID {storeId}에 대한 분석 결과가 없습니다.",
-            "status": 404
+            "error": "NotFound",
+            "message": f"Store ID {storeId} / term {term} 분석 결과가 없습니다.",
+            "statusCode": 404
         }
+
+    storeName = analysis.storeId.name 
+
     return {
-        'storeName': analysis.storeName,
-	    "goodPoint": analysis.goodPoint,
-	    "badPoint": analysis.badPoint,
-	    "percentage": {
-		    "goodPercentage": analysis.goodPercentage,
-		    "middlePercentage": analysis.middlePercentage,
-		    "badPercentage": analysis.badPercentage
-	    },
-	    "analysisKeyword": analysis.analysisKeyword,
-	    "analysisProblem": analysis.analysisProblem,
-	    "analysisSolution": analysis.analysisSolution
+        "storeName": storeName,
+        "goodPoint": analysis.goodPoint,
+        "badPoint": analysis.badPoint,
+        "percentage": {
+            "goodPercentage": analysis.goodPercentage,
+            "middlePercentage": analysis.middlePercentage,
+            "badPercentage": analysis.badPercentage,
+        },
+        "analysisKeyword": analysis.analysisKeyword,
+        "analysisProblem": analysis.analysisProblem,
+        "analysisSolution": analysis.analysisSolution,
     }
 
 def get_analysis_by_store(store_id: int) -> Optional[Dict]:
