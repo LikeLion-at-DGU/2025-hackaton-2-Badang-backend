@@ -223,6 +223,20 @@ class loginView(APIView):
                 secure=True,
                 samesite='None'  # 크로스사이트라면 "None"
             )
+            
+            first_store = stores_qs.first()
+            if first_store:
+                review_analyses = getattr(first_store, 'review_analysis', None)
+                if review_analyses is not None:
+                    if review_analyses.count() == 0:
+                        postReviewAnalysis(first_store.id, term=0) 
+                        postReviewAnalysis(first_store.id, term=1)
+                    else:
+                        latest_analysis = review_analyses.order_by('-updatedAt').first()
+                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
+                            postReviewAnalysis(first_store.id, term=0)
+                            postReviewAnalysis(first_store.id, term=1)
+            
             return response
 
         except DomainError as e:
