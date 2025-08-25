@@ -27,6 +27,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
         try:
             storeId = user.stores.first().id
             term = int(term_str)
+            
         except (ValueError, TypeError):
             return Response({
                 "error": "BadRequest",
@@ -41,7 +42,8 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
         responseData = {
             "statusCode": 200,
             "message": "리뷰분석 조회 성공",
-            "data": analysisData
+            "data": analysisData,
+            "user":user
         }
 
         return Response(responseData, status=status.HTTP_200_OK)
