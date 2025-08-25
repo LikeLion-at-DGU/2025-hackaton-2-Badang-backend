@@ -6,7 +6,7 @@ from .services import *
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from common.serializers import CommonResponseSerializer
 from .selectors import getReviewAnalysis
-from main.serializers import ProfielSerializer
+from main.serializers import ProfileSerializer
 
 # 리뷰 생성 로직 main으로 이동. 리뷰 데이터를 읽는 로직만 남김.
 class ReviewAnalysisViewSet(viewsets.ViewSet):
@@ -38,7 +38,7 @@ class ReviewAnalysisViewSet(viewsets.ViewSet):
 
         # 로그인/회원가입 시 생성된 리뷰 분석 데이터 조회.
         analysisData = getReviewAnalysis(storeId, term)
-        userData = ProfielSerializer(user)
+        userData = ProfileSerializer(user, context={"request": request}).data
         # 리스폰스 반환
         responseData = {
             "statusCode": 200,
