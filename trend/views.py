@@ -56,6 +56,12 @@ class CreateKeywordView(APIView):
         logger.info(f"CreateKeywordView POST request from user: {request.user.id if request.user.is_authenticated else 'Anonymous'}")
         logger.info(f"Request data: {request.data}")
         
+        # 인증 확인
+        if not request.user.is_authenticated:
+            return Response({
+                "detail": "인증이 필요합니다."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
         try:
             # 사용자 프로필 확인
             try:
@@ -64,7 +70,8 @@ class CreateKeywordView(APIView):
             except Exception as e:
                 logger.error(f"Profile access error for user {request.user.id}: {str(e)}")
                 return Response({
-                    "detail": f"사용자 프로필을 찾을 수 없습니다: {str(e)}"
+                    "detail": f"사용자 프로필을 찾을 수 없습니다. 프로필을 먼저 생성해주세요.",
+                    "error": str(e)
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # 사용자 가게 확인
@@ -72,7 +79,7 @@ class CreateKeywordView(APIView):
             if me is None:
                 logger.warning(f"No store found for user {user.profileName}")
                 return Response({
-                    "detail": "request 를 보낸 유저에게는 가게가 없습니다."
+                    "detail": "가게 정보가 없습니다. 가게를 먼저 등록해주세요."
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
                 logger.info(f"Store found: {me.name}")
@@ -80,7 +87,8 @@ class CreateKeywordView(APIView):
         except Exception as e:
             logger.error(f"User authentication error: {str(e)}")
             return Response({
-                "detail": f"사용자 인증 처리 중 오류가 발생했습니다: {str(e)}"
+                "detail": f"사용자 인증 처리 중 오류가 발생했습니다.",
+                "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # 요청 데이터 검증

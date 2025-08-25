@@ -9,6 +9,7 @@ from main.models import Store
 def getReviewAnalysis(storeId: int, term: int) -> Dict:
     try:
         analysis = ReviewAnalysis.objects.get(storeId=storeId, term=term) # 스토어 아이디 / term 기반 리뷰 분석 조회
+        
     except ReviewAnalysis.DoesNotExist:
         return {
             "error": "Not Found",
