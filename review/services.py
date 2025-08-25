@@ -60,7 +60,7 @@ def updateReviewData(store: Store, reviewData: list):
         )
     Review.objects.bulk_create(createReview)
 
-def postReviewAnalysis(storeId: int, term: int):
+def postReviewAnalysis(storeId: int, term: int=0):
     try:
         store = Store.objects.get(pk=storeId)
         if not store.kakaoPlaceId:
@@ -128,8 +128,23 @@ def postReviewAnalysis(storeId: int, term: int):
             return {"message": "리뷰 분석 및 저장 성공", "data": analysisResult}
         
         else:
-            # 분석에 실패한 경우
-            return {"message": "리뷰 분석 중 오류가 발생했습니다. LLM 응답 형식에 문제가 있습니다.", "data": analysisResult}
+            if not reviewsQuerySet.exists():
+                ReviewAnalysis.objects.update_or_create(
+                storeId=store,
+                term=term,
+                defaults={
+                    'storeName': store.name,
+                    'goodPoint': '해당 기간에 리뷰 없음',
+                    'badPoint': '해당 기간에 리뷰 없음',
+                    'goodPercentage': 0,
+                    'badPercentage': 0,
+                    'middlePercentage': 0,
+                    'analysisKeyword': '리뷰 없음',
+                    'analysisProblem': '리뷰 없음',
+                    'analysisSolution': '리뷰 없음',
+                }
+            )
+            return {"message": "해당 기간에 리뷰가 없어 스텁 저장 완료"}
 
     except Exception as e:
         print(f"리뷰 분석 실패: {e}")
