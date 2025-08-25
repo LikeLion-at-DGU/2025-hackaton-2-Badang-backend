@@ -8,10 +8,15 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import PermissionDenied, ValidationError # DRF 예외 사용
+from django.conf import settings
 
 from .services import *
 from .selectors import *
 from review.services import postReviewAnalysis
+from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 GENDER_DISPLAY_TO_CODE = {"남": "M", "여": "F", "기타": "O"}
 AGE_DISPLAY_TO_CODE    = {"청소년": 0, "청년": 1, "중년": 2, "노년": 3}
@@ -63,6 +68,11 @@ class signupView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             # 예상 밖 서버 오류 -> 500
+            if getattr(settings, 'DEBUG', False):
+                # 개발 환경에서는 상세 트레이스 반환 (간편 디버깅용)
+                import traceback
+                tb = traceback.format_exc()
+                return Response({"error": "서버 오류가 발생했습니다.", "trace": tb}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -205,16 +215,33 @@ class loginView(APIView):
 
             first_store = stores_qs.first()
             if first_store:
-                review_analyses = getattr(first_store, 'review_analysis', None)
-                if review_analyses is not None:
-                    if review_analyses.count() == 0:
-                        postReviewAnalysis(first_store.id, term=0)
-                        postReviewAnalysis(first_store.id, term=1)
-                    else:
-                        latest_analysis = review_analyses.order_by('-updatedAt').first()
-                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
+                logger.info(f"First store found: {first_store.id}, name: {first_store.name}")
+                
+                # ReviewAnalysis의 related_name이 "review_analysis"(단수)이므로 
+                # 여러 개의 분석을 가져오려면 직접 쿼리해야 합니다
+                from review.models import ReviewAnalysis
+                existing_analyses = ReviewAnalysis.objects.filter(storeId=first_store)
+                
+                logger.info(f"Existing analyses count: {existing_analyses.count()}")
+                
+                if existing_analyses.count() == 0:
+                    logger.info("No existing analyses found. Creating new ones...")
+                    postReviewAnalysis(first_store.id, term=0)
+                    postReviewAnalysis(first_store.id, term=1)
+                else:
+                    latest_analysis = existing_analyses.order_by('-updatedAt').first()
+                    if latest_analysis:
+                        days_since_update = (timezone.now() - latest_analysis.updatedAt).days
+                        logger.info(f"Latest analysis updated {days_since_update} days ago")
+                        
+                        if days_since_update > 3:
+                            logger.info("Analysis is older than 3 days. Creating new ones...")
                             postReviewAnalysis(first_store.id, term=0)
                             postReviewAnalysis(first_store.id, term=1)
+                        else:
+                            logger.info("Analysis is recent. No need to update.")
+            else:
+                logger.info("No stores found for this user")
 
             response = Response({
                 "message": "로그인 성공",

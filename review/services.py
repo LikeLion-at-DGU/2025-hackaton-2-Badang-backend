@@ -7,7 +7,10 @@ from main.models import Store
 from .reviewAnalisys import reviewAnalysisByAI
 from common.services.llm import run_llm
 from .getReview import getKakaoReview
+import logging
+
 env = environ.Env()
+logger = logging.getLogger(__name__)
     
 def getStoreId(storeName, storeAddress):
     KAKAO_KEY = env.get_value("KAKAO_KEY")
@@ -61,16 +64,23 @@ def updateReviewData(store: Store, reviewData: list):
     Review.objects.bulk_create(createReview)
 
 def postReviewAnalysis(storeId: int, term: int):
+    logger.info(f"리뷰 분석 시작 - storeId: {storeId}, term: {term}")
     print("리뷰 분석 시작")
     try:
         store = Store.objects.get(pk=storeId)
+        logger.info(f"Store found: {store.name}, kakaoPlaceId: {store.kakaoPlaceId}")
         if not store.kakaoPlaceId:
+            logger.error(f"Store {storeId} has no kakaoPlaceId")
             raise ValueError("가게에 kakaoPlaceId가 등록되어 있지 않습니다.")
     except (Store.DoesNotExist, ValueError) as e:
+        logger.error(f"서비스 처리 불가: {e}")
         print(f"서비스 처리 불가: {e}")
         return None # 가게가 없거나 kakao_id가 없으면 None 반환
 
+    logger.info(f"Calling getKakaoReview with kakaoPlaceId: {store.kakaoPlaceId}")
     scrapedReviews = getKakaoReview(store.kakaoPlaceId)
+    logger.info(f"Scraped reviews count: {len(scrapedReviews) if scrapedReviews else 0}")
+    
     if scrapedReviews:
         updateReviewData(store, scrapedReviews)
 
@@ -79,14 +89,20 @@ def postReviewAnalysis(storeId: int, term: int):
     # term에 따라 리뷰 필터링
     date = timezone.now()
     reviewsQuerySet = store.reviews.all()
+    logger.info(f"Total reviews in store: {reviewsQuerySet.count()}")
     
     if term == 1: # 한 달
         reviewsQuerySet = reviewsQuerySet.filter(reviewDate__gte=date - timedelta(days=30))
+        logger.info(f"Reviews in last 30 days: {reviewsQuerySet.count()}")
 
     elif term == 2: # 일주일, 유저 결제 여부 판별 필요?
         reviewsQuerySet = reviewsQuerySet.filter(reviewDate__gte=date - timedelta(days=7))
+        logger.info(f"Reviews in last 7 days: {reviewsQuerySet.count()}")
+    else:
+        logger.info(f"Using all reviews (term=0): {reviewsQuerySet.count()}")
 
     if not reviewsQuerySet.exists():
+        logger.warning(f"No reviews found for term {term}")
         return {"message": "해당 기간에 분석할 리뷰가 없습니다."}
 
     # 필터링된 리뷰로 LLM 페이로드 생성 
@@ -101,11 +117,14 @@ def postReviewAnalysis(storeId: int, term: int):
 
     # LLM 분석 실행
     try:
+        logger.info(f"Starting LLM analysis with {len(reviewPayload)} reviews")
         analysisResult = reviewAnalysisByAI(payload)
+        logger.info(f"LLM analysis result keys: {analysisResult.keys() if analysisResult else 'None'}")
 
         # 'analysisKeyword'가 '리뷰 분석 실패'와 같은 기본값인지 확인하여
         # 성공 여부를 판단하고 DB에 저장
         isSuccess = analysisResult.get('analysisKeyword') != '리뷰 분석 실패'
+        logger.info(f"Analysis success: {isSuccess}")
 
         if isSuccess:
             # get() 메서드를 사용하여 안전하게 키에 접근
@@ -127,13 +146,16 @@ def postReviewAnalysis(storeId: int, term: int):
                     'analysisSolution': analysisResult.get("analysisSolution", "분석 실패"),
                 }
             )
-
+            
+            logger.info(f"ReviewAnalysis saved successfully. Created: {created}, ID: {reviewAnalysisResult.reviewAnalysisId}")
             return {"message": "리뷰 분석 및 저장 성공", "data": analysisResult}
         
         else:
             # 분석에 실패한 경우
+            logger.error(f"LLM analysis failed - analysisKeyword: {analysisResult.get('analysisKeyword')}")
             return {"message": "리뷰 분석 중 오류가 발생했습니다. LLM 응답 형식에 문제가 있습니다.", "data": analysisResult}
 
     except Exception as e:
+        logger.exception(f"리뷰 분석 실패: {e}")
         print(f"리뷰 분석 실패: {e}")
         return {"message": "리뷰 분석 중 오류가 발생했습니다.", "error": str(e)}
