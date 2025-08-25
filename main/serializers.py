@@ -67,21 +67,15 @@ class visitorSerializer(serializers.ModelSerializer):
     ageGroup = serializers.IntegerField(source="age_group")
     isForeign = serializers.BooleanField(source="is_foreign")
 
-    # 라벨(choices의 display)
-    genderLabel = serializers.CharField(source="get_gender_display", read_only=True)
-    ageGroupLabel = serializers.CharField(source="get_age_group_display", read_only=True)
-
     class Meta:
         model = Visitor
         fields = [
             "id",
             "gender",        # 'M' | 'F' | 'O'
-            "genderLabel",   # '남' | '여' | '기타'
             "ageGroup",      # 0|1|2|3
-            "ageGroupLabel", # '청소년'|'청년'|'중년'|'노년'
             "isForeign"      # true/false
         ]
-        read_only_fields = ["id", "genderLabel", "ageGroupLabel"]
+        read_only_fields = ["id"]
 
 
 class storeReadSerializer(serializers.ModelSerializer):
