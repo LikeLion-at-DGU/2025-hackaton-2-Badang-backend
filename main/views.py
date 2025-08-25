@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import *
 from .serializers import *
-from newsletter.models import Newsletter
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -13,9 +12,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError # DRF �
 from .services import *
 from .selectors import *
 from review.services import postReviewAnalysis
-from django.utils import timezone
 
-
+GENDER_DISPLAY_TO_CODE = {"남": "M", "여": "F", "기타": "O"}
+AGE_DISPLAY_TO_CODE    = {"청소년": 0, "청년": 1, "중년": 2, "노년": 3}
 
 class signupView(APIView):
     permission_classes= [AllowAny]
@@ -66,6 +65,43 @@ class signupView(APIView):
             # 예상 밖 서버 오류 -> 500
             return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+def normalizeStoreDict(dataDict: dict) -> dict:
+    if not isinstance(dataDict, dict):
+        return dataDict
+
+    # visitor 변환
+    visitor = dataDict.get("visitor")
+    normVisitor = None
+    if visitor:
+        genderDisplay = visitor.get("gender")        
+        ageDisplay    = visitor.get("ageGroup")        
+        isForeign     = visitor.get("isForeign")
+
+        normVisitor = {
+            
+            "gender": GENDER_DISPLAY_TO_CODE.get(genderDisplay, None),
+            
+            "ageGroup": AGE_DISPLAY_TO_CODE.get(ageDisplay, None),
+            
+            "isForeign": bool(isForeign) if isForeign is not None else None,
+        }
+
+    menu = dataDict.get("menu") or []
+
+    return {
+        "id": dataDict.get("id"),
+        "name": dataDict.get("name"),
+        "address": dataDict.get("address"),
+        "visitor": normVisitor,
+        "menu": menu,
+        "type": dataDict.get("type"),
+        "category": dataDict.get("category"),
+        "isWillingCollaborate": dataDict.get("isWillingCollaborate"),
+        "storeContent": dataDict.get("storeContent"),
+    }
+
+
 class storeView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -113,23 +149,26 @@ class storeView(APIView):
         
         try:
             # 검증된 store 객체와 데이터를 서비스 함수에 전달합니다.
-            result = storeUpdate(store=store, **req.validated_data)
-            
-            # storeId = result.id
-            # postReviewAnalysis(storeId=storeId, term=0)
-            # postReviewAnalysis(storeId=storeId, term=1)
+            resultDict = storeUpdate(store=store, **req.validated_data)
+            normalized = normalizeStoreDict(resultDict)
             
             return Response({
                 "message": "상세정보 등록 완료",
                 "statusCode": "200",
-                "data": storeReadSerializer(result).data,
-            }, status=status.HTTP_200_OK)
+                "data": normalized,
+            }, status=200)
             
             
         
         except DomainError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+            logger.info("storeUpdate domain error: %s", e)
+            return Response({"error": str(e)}, status=400)
+        except IntegrityError as e:
+            logger.exception("storeUpdate integrity error")
+            return Response({"error": "데이터 무결성 오류(중복/제약 충돌)입니다."}, status=400)
+        except Exception as e:
+            logger.exception("storeUpdate unexpected error")
+            return Response({"error": "서버 오류가 발생했습니다."}, status=500)
 
 
 class loginView(APIView):
@@ -155,21 +194,6 @@ class loginView(APIView):
             
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
-            
-            # 가게에 연결된 리뷰 분석 데이터가 없거나 마지막 업데이트 후 3일 경과시 postReviewAnalysis 호출
-
-            first_store = stores_qs.first()
-            if first_store:
-                review_analyses = getattr(first_store, 'review_analysis', None)
-                if review_analyses is not None:
-                    if review_analyses.count() == 0:
-                        postReviewAnalysis(first_store.id, term=0)
-                        postReviewAnalysis(first_store.id, term=1)
-                    else:
-                        latest_analysis = review_analyses.order_by('-updatedAt').first()
-                        if latest_analysis and (timezone.now() - latest_analysis.updatedAt).days > 3:
-                            postReviewAnalysis(first_store.id, term=0)
-                            postReviewAnalysis(first_store.id, term=1)
 
             response = Response({
                 "message": "로그인 성공",
@@ -253,13 +277,9 @@ class meView(APIView):
     def get(self, request):
         profile = request.user.profile
         stores = Store.objects.filter(user=profile)
-        menu = Menu.objects.filter(store__in=stores)
         return Response({
             "id": request.user.username,
             "profileId": profile.user_id,
             "username": profile.profileName,
-            "stores": storeReadSerializer(stores, many=True).data,
-            "menu": MenuSerializer(menu, many=True).data,
-            # 사용자에게 연결된 뉴스레터 중 isLiked=true 개수
-            "likesCount": Newsletter.objects.filter(user=profile, isLiked=True).count()
+            "stores": storeReadSerializer(stores, many=True).data
         }, status=status.HTTP_200_OK)
