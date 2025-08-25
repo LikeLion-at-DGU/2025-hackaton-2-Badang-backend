@@ -17,6 +17,9 @@ class DomainError(Exception):
 
 
 class TrendsToKeywordView(APIView):
+    
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         req = TrendInputReq(data=request.data)
         req.is_valid(raise_exception=True)
