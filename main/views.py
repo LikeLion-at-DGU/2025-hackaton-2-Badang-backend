@@ -9,10 +9,14 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import PermissionDenied, ValidationError # DRF 예외 사용
 from django.conf import settings
+from django.utils import timezone
+import logging
 
 from .services import *
 from .selectors import *
 from review.services import postReviewAnalysis
+
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 import logging
 
@@ -212,37 +216,12 @@ class loginView(APIView):
 
             # 또는 최소 필드만
             # stores = list(stores_qs.values("id", "name", "address"))
-
-            first_store = stores_qs.first()
-            if first_store:
-                logger.info(f"First store found: {first_store.id}, name: {first_store.name}")
-                
-                # ReviewAnalysis의 related_name이 "review_analysis"(단수)이므로 
-                # 여러 개의 분석을 가져오려면 직접 쿼리해야 합니다
-                from review.models import ReviewAnalysis
-                existing_analyses = ReviewAnalysis.objects.filter(storeId=first_store)
-                
-                logger.info(f"Existing analyses count: {existing_analyses.count()}")
-                
-                if existing_analyses.count() == 0:
-                    logger.info("No existing analyses found. Creating new ones...")
-                    postReviewAnalysis(first_store.id, term=0)
-                    postReviewAnalysis(first_store.id, term=1)
-                else:
-                    latest_analysis = existing_analyses.order_by('-updatedAt').first()
-                    if latest_analysis:
-                        days_since_update = (timezone.now() - latest_analysis.updatedAt).days
-                        logger.info(f"Latest analysis updated {days_since_update} days ago")
-                        
-                        if days_since_update > 3:
-                            logger.info("Analysis is older than 3 days. Creating new ones...")
-                            postReviewAnalysis(first_store.id, term=0)
-                            postReviewAnalysis(first_store.id, term=1)
-                        else:
-                            logger.info("Analysis is recent. No need to update.")
-            else:
-                logger.info("No stores found for this user")
-
+            
+            # 스토어에 연결된 리뷰 분석 데이터가 없거나, 생성 일자가 3일 이상 지난 경우, 리뷰 분석 생성
+            
+            postReviewAnalysis(stores_qs.first().id, term=0)
+            postReviewAnalysis(stores_qs.first().id, term=1)
+            
             response = Response({
                 "message": "로그인 성공",
                 "stores": stores
