@@ -60,7 +60,6 @@ class CreateKeywordView(APIView):
         keyword = req.validated_data["keyword"]
 
         try:
-            
             kw = keywordSaveByUserSync(keyword, me)
 
             if kw.status != "succeeded" or not kw.keywordImageUrl:
@@ -68,27 +67,23 @@ class CreateKeywordView(APIView):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             news = createNewsletterByUser(me.id, kw)
-            
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
             return Response({"detail": "키워드 생성에 실패했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        try:
-            news = createNewsletterByUser(me.id, kw)  # kw는 Keyword 인스턴스
-            kwData = KeywordRes(kw).data
-            newsData = NewsletterSerializer(news, context={'request': request}).data
+        # 응답 직렬화만
+        kwData = KeywordRes(kw).data
+        newsData = NewsletterSerializer(news, context={'request': request}).data
 
-            return Response({
-                "message": "키워드와 뉴스레터를 생성했습니다.",
-                "statusCode": 200,
-                "data": {
-                    "keyword": kwData,       # 여기의 keywordImageUrl은 serializer에서 URL로 변환됨
-                    "newsletter": newsData
-                }
-            }, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({"detail": "뉴스레터 생성에 실패했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "message": "키워드와 뉴스레터를 생성했습니다.",
+            "statusCode": 200,
+            "data": {
+                "keyword": kwData,
+                "newsletter": newsData
+            }
+        }, status=status.HTTP_200_OK)
 
 
 class GetTrendApi(APIView):
