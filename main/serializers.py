@@ -80,12 +80,15 @@ class visitorSerializer(serializers.ModelSerializer):
 
 class storeReadSerializer(serializers.ModelSerializer):
     ownerName = serializers.CharField(source="user.profileName", read_only=True)
-    visitor = visitorSerializer(read_only=True)  # ← dict 형태로 포함
+    visitor = visitorSerializer(read_only=True)
+    
+    menu = MenuSerializer(source="menus", many=True, read_only=True)
+    
 
     class Meta:
         model = Store
-        fields = "__all__"
-
+        fields = "__all__" 
+        
 class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
