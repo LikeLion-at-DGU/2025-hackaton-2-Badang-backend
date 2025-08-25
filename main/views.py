@@ -232,42 +232,45 @@ class logoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        cookieDomain = ".doyoun.shop"
-        cookiePath = "/"
+        # 발급 시 실제 사용했던 값들로 최종 통일할 예정이지만,
+        # 지금은 마이그레이션용으로 "싹쓸이 삭제"를 한다.
+        candidateDomains = [None, "doyoun.shop", ".doyoun.shop"]
+        candidatePaths = ["/", "/api", "/backend"]  # 프로젝트에 맞게 추가/수정
         cookieSameSite = "None"
         cookieSecure = True
 
         refreshToken = request.COOKIES.get("refresh_token")
-
         if refreshToken:
             try:
                 profileLogout(refreshToken)
             except DomainError as e:
                 resp = Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                # 1) host-only 쿠키 삭제 (domain 생략)
-                resp.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
-                resp.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
-                # 2) .doyoun.shop 쿠키 삭제
-                resp.delete_cookie("access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
-                resp.delete_cookie("refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
+                self.nukeCookies(resp, candidateDomains, candidatePaths, cookieSameSite, cookieSecure)
                 return resp
 
         resp = Response({"message": "로그아웃 성공"}, status=status.HTTP_200_OK)
+        self.nukeCookies(resp, candidateDomains, candidatePaths, cookieSameSite, cookieSecure)
 
-        # 1) host-only 먼저
-        resp.delete_cookie("access_token", path=cookiePath, samesite=cookieSameSite)
-        resp.delete_cookie("refresh_token", path=cookiePath, samesite=cookieSameSite)
-        # 2) .doyoun.shop 도 같이
-        resp.delete_cookie("access_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
-        resp.delete_cookie("refresh_token", path=cookiePath, domain=cookieDomain, samesite=cookieSameSite)
-
-        # (선택) 만료 덮어쓰기
-        for name in ["access_token", "refresh_token"]:
-            resp.set_cookie(name, "", max_age=0, expires=0,
-                            path=cookiePath, secure=cookieSecure, httponly=True, samesite=cookieSameSite)
-            resp.set_cookie(name, "", max_age=0, expires=0,
-                            path=cookiePath, domain=cookieDomain, secure=cookieSecure, httponly=True, samesite=cookieSameSite)
+        # 캐시 무효화(혹시모를 CDN/브라우저 캐시 방지)
+        resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp["Pragma"] = "no-cache"
         return resp
+
+    def nukeCookies(self, resp, domains, paths, samesite, secure):
+        for name in ["access_token", "refresh_token"]:
+            # 1) delete_cookie 모든 조합
+            for d in domains:
+                for p in paths:
+                    resp.delete_cookie(name, domain=d, path=p, samesite=samesite)
+            # 2) 만료값으로 덮어쓰기(혹시 모를 브라우저 이슈용)
+            for d in domains:
+                for p in paths:
+                    resp.set_cookie(
+                        name, "", max_age=0, expires=0,
+                        domain=d, path=p,
+                        secure=secure, httponly=True, samesite=samesite
+                    )
+
 
 
 class tokenRefreshView(APIView):
