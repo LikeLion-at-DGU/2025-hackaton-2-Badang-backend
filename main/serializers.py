@@ -85,3 +85,9 @@ class storeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = "__all__"
+
+class ProfielSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = "Profile"
+        fields = "__all__"
